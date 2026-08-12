@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { createBrowserRouter, RouterProvider, Link } from 'react-router-dom';
 
 import Home from "./pages/Home"
 import About from './pages/About';
-
-
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Inicio from './pages/Inicio';
 import './App.css'
-import { createBrowserRouter, RouterProvider, Link } from 'react-router-dom';
 
 
 const router = createBrowserRouter([
@@ -21,18 +21,22 @@ const router = createBrowserRouter([
     path: "/about",
     element: <About />,
   },
+  {
+    path: "/Login",
+    element: <Login />,
+  },
+  {
+    path: "/Register",
+    element: <Register />,
+  },
+  {
+    path: "/Inicio",
+    element: <Inicio />,
+  },
 ]);
 
 function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-
-      {/* 3. Provide the router layout to the application */}
-      <RouterProvider router={router} />
-    </>
-  )
+  return <RouterProvider router={router} />;
 }
 
-export default App
+export default App;
