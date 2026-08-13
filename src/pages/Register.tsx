@@ -36,7 +36,7 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
 
     localStorage.setItem('melascan_role', role);
     setLoading(false);
-    navigate('/home');
+    navigate(role === 'medico' ? '/home' : '/mis-analisis');
   };
 
   return (

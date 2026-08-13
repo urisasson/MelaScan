@@ -33,7 +33,7 @@ export default function Login({ initialRole = 'paciente', onClose, onSwitchToReg
 
     localStorage.setItem('melascan_role', role);
     setLoading(false);
-    navigate('/home');
+    navigate(role === 'medico' ? '/home' : '/mis-analisis');
   };
 
   return (

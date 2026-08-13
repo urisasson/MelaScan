@@ -5,6 +5,7 @@ import Inicio from './pages/Inicio';
 import Historial from './pages/Historial';
 import CriterioABCDE from './pages/CriterioABCDE';
 import Chat from './pages/Chat';
+import MisAnalisis from './pages/MisAnalisis';
 import './App.css'
 
 
@@ -36,6 +37,11 @@ const router = createBrowserRouter([
     path: "/chats",
     element: <Chat />,
   },
+  ,
+  {
+    path: "/mis-analisis",
+    element: <MisAnalisis  />,
+  }
 ]);
 
 function App() {

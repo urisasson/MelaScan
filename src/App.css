@@ -289,3 +289,20 @@ h1, h2, h3, h4 { font-family: 'Fraunces', serif; font-weight: 500; margin: 0; }
   .mole-examples-grid { grid-template-columns: 1fr; }
   .chat-shell { grid-template-columns: 1fr; }
 }
+
+/* ==================== CRITERIO ABCDE - imágenes reales ==================== */
+.abcde-image { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; margin-bottom: 12px; background: var(--line); }
+.mole-image { width: 100%; height: 180px; object-fit: cover; border-radius: 12px; border: 1px solid var(--line); background: var(--paper); }
+
+/* ==================== MIS ANÁLISIS (paciente) ==================== */
+.clickable-row { cursor: pointer; }
+.clickable-row:hover { background: var(--paper); }
+.back-link {
+  background: none; border: none; font-size: 14px; font-weight: 500; color: var(--ink);
+  cursor: pointer; margin-bottom: 24px; padding: 0; display: flex; align-items: center; gap: 6px;
+}
+.back-link:hover { color: var(--accent); }
+.analysis-full-image { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; }
+.analysis-full-image-placeholder { width: 100%; min-height: 380px; background: var(--line); border-radius: 12px; }
+.abcde-mini-card.used { background: var(--accent); color: #fff; }
+.abcde-mini-card.used .abcde-mini-letter { color: #fff; }
