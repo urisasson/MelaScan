@@ -1,12 +1,18 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
-export default function Register() {
+interface Props {
+  initialRole?: 'paciente' | 'medico';
+  onClose: () => void;
+  onSwitchToLogin: () => void;
+}
+
+export default function Register({ initialRole = 'paciente', onClose, onSwitchToLogin }: Props) {
+  const [role, setRole] = useState<'paciente' | 'medico'>(initialRole);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'medico' | 'paciente'>('paciente');
   const [specialty, setSpecialty] = useState('');
   const [assignedDoctor, setAssignedDoctor] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,58 +40,65 @@ export default function Register() {
   };
 
   return (
-    <div className="auth-screen">
-      <form className="auth-card" onSubmit={handleSubmit}>
-        <h1>Crear cuenta</h1>
-        <p className="auth-sub">Registrate como médico o como paciente.</p>
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose} aria-label="Cerrar">✕</button>
+        <h2>Registrarse</h2>
 
-        <label className="field">
-          <span>Soy</span>
-          <div className="role-toggle">
-            <button type="button" className={role === 'medico' ? 'active' : ''} onClick={() => setRole('medico')}>
-              Médico
-            </button>
-            <button type="button" className={role === 'paciente' ? 'active' : ''} onClick={() => setRole('paciente')}>
-              Paciente
-            </button>
-          </div>
-        </label>
-
-        <label className="field">
-          <span>Nombre completo</span>
-          <input value={name} onChange={(e) => setName(e.target.value)} required />
-        </label>
-
-        <label className="field">
-          <span>Email</span>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </label>
-
-        <label className="field">
-          <span>Contraseña</span>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        </label>
-
-        {role === 'medico' ? (
+        <form onSubmit={handleSubmit}>
           <label className="field">
-            <span>Especialidad</span>
-            <input value={specialty} onChange={(e) => setSpecialty(e.target.value)} placeholder="Ej: Dermatología clínica" />
+            <span>Soy</span>
+            <div className="role-toggle">
+              <button type="button" className={role === 'paciente' ? 'active' : ''} onClick={() => setRole('paciente')}>
+                Como Paciente
+              </button>
+              <button type="button" className={role === 'medico' ? 'active' : ''} onClick={() => setRole('medico')}>
+                Como Médico
+              </button>
+            </div>
           </label>
-        ) : (
+
           <label className="field">
-            <span>Médico asignado</span>
-            <input value={assignedDoctor} onChange={(e) => setAssignedDoctor(e.target.value)} placeholder="Ej: Dra. Sofía Molina" />
+            <span>Nombre completo</span>
+            <input value={name} onChange={(e) => setName(e.target.value)} required />
           </label>
-        )}
 
-        {error && <p className="form-error">{error}</p>}
+          <label className="field">
+            <span>Correo electrónico</span>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </label>
 
-        <button type="submit" className="btn-primary auth-submit" disabled={loading}>
-          {loading ? 'Creando cuenta…' : 'Crear cuenta'}
-        </button>
+          <label className="field">
+            <span>Contraseña</span>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          </label>
 
-        <p className="auth-switch">¿Ya tenés cuenta? <Link to="/login">Iniciá sesión</Link></p>
-      </form>
+          {role === 'medico' ? (
+            <label className="field">
+              <span>Especialidad</span>
+              <input value={specialty} onChange={(e) => setSpecialty(e.target.value)} placeholder="Ej: Dermatología clínica" />
+            </label>
+          ) : (
+            <label className="field">
+              <span>Médico asignado</span>
+              <input value={assignedDoctor} onChange={(e) => setAssignedDoctor(e.target.value)} placeholder="Ej: Dra. Sofía Molina" />
+            </label>
+          )}
+
+          {error && <p className="form-error">{error}</p>}
+
+          <button type="submit" className="btn-primary auth-submit" disabled={loading}>
+            {loading ? 'Un momento…' : 'Continuar'}
+          </button>
+        </form>
+
+        <p className="auth-switch">
+          ¿Ya tenés una cuenta?{' '}
+          <button type="button" className="link-btn" onClick={onSwitchToLogin}>
+            Inicia sesión aquí
+          </button>
+        </p>
+      </div>
     </div>
   );
 }

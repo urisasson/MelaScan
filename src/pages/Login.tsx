@@ -1,11 +1,17 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
-export default function Login() {
+interface Props {
+  initialRole?: 'paciente' | 'medico';
+  onClose: () => void;
+  onSwitchToRegister: () => void;
+}
+
+export default function Login({ initialRole = 'paciente', onClose, onSwitchToRegister }: Props) {
+  const [role, setRole] = useState<'paciente' | 'medico'>(initialRole);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'medico' | 'paciente'>('medico');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -31,41 +37,48 @@ export default function Login() {
   };
 
   return (
-    <div className="auth-screen">
-      <form className="auth-card" onSubmit={handleSubmit}>
-        <h1>Iniciar sesión</h1>
-        <p className="auth-sub">Accedé a tu cuenta de MelaScan.</p>
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose} aria-label="Cerrar">✕</button>
+        <h2>Iniciar Sesión</h2>
 
-        <label className="field">
-          <span>Soy</span>
-          <div className="role-toggle">
-            <button type="button" className={role === 'medico' ? 'active' : ''} onClick={() => setRole('medico')}>
-              Médico
-            </button>
-            <button type="button" className={role === 'paciente' ? 'active' : ''} onClick={() => setRole('paciente')}>
-              Paciente
-            </button>
-          </div>
-        </label>
+        <form onSubmit={handleSubmit}>
+          <label className="field">
+            <span>Soy</span>
+            <div className="role-toggle">
+              <button type="button" className={role === 'paciente' ? 'active' : ''} onClick={() => setRole('paciente')}>
+                Como Paciente
+              </button>
+              <button type="button" className={role === 'medico' ? 'active' : ''} onClick={() => setRole('medico')}>
+                Como Médico
+              </button>
+            </div>
+          </label>
 
-        <label className="field">
-          <span>Email</span>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@email.com" required />
-        </label>
+          <label className="field">
+            <span>Correo electrónico</span>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </label>
 
-        <label className="field">
-          <span>Contraseña</span>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
-        </label>
+          <label className="field">
+            <span>Contraseña</span>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          </label>
 
-        {error && <p className="form-error">{error}</p>}
+          {error && <p className="form-error">{error}</p>}
 
-        <button type="submit" className="btn-primary auth-submit" disabled={loading}>
-          {loading ? 'Ingresando…' : 'Ingresar'}
-        </button>
+          <button type="submit" className="btn-primary auth-submit" disabled={loading}>
+            {loading ? 'Un momento…' : 'Continuar'}
+          </button>
+        </form>
 
-        <p className="auth-switch">¿No tenés cuenta? <Link to="/register">Registrate</Link></p>
-      </form>
+        <p className="auth-switch">
+          ¿No tenés una cuenta?{' '}
+          <button type="button" className="link-btn" onClick={onSwitchToRegister}>
+            Regístrate aquí
+          </button>
+        </p>
+      </div>
     </div>
   );
 }

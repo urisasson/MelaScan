@@ -1,9 +1,7 @@
-import { createBrowserRouter, RouterProvider, Link } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider} from 'react-router-dom';
 
 import Home from "./pages/Home"
 import About from './pages/About';
-import Login from './pages/Login';
-import Register from './pages/Register';
 import Inicio from './pages/Inicio';
 import './App.css'
 
@@ -11,7 +9,7 @@ import './App.css'
 const router = createBrowserRouter([
   {
     path:"/",
-    element: <Home />
+    element: <Inicio />
   },
   {
     path:"/Home",
@@ -20,15 +18,8 @@ const router = createBrowserRouter([
   {
     path: "/about",
     element: <About />,
-  },
-  {
-    path: "/Login",
-    element: <Login />,
-  },
-  {
-    path: "/Register",
-    element: <Register />,
-  },
+    },
+    
   {
     path: "/Inicio",
     element: <Inicio />,
