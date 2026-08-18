@@ -1,20 +1,18 @@
 import { Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 
-interface ScanEntry {
+interface AnalysisRecord {
   id: string;
   date: string;
-  triage: 'bajo' | 'moderado' | 'alto';
-  criteriaUsed: string[]; // subconjunto de ['A','B','C','D','E']
-  riskPercentage: number;
+  imageDataUrl: string;
+  triage: 'pendiente' | 'bajo' | 'moderado' | 'alto';
+  riskPercentage: number | null;
+  criteriaUsed: string[];
   description: string;
 }
 
-// TODO: reemplazar por GET /historial al backend de Franco.
-// Cada elemento debe tener la forma de ScanEntry de arriba.
-const entries: ScanEntry[] = [];
-
-const triageClass: Record<ScanEntry['triage'], string> = {
+const triageClass: Record<AnalysisRecord['triage'], string> = {
+  pendiente: 'risk-pending',
   bajo: 'risk-low',
   moderado: 'risk-mid',
   alto: 'risk-high',
@@ -23,6 +21,9 @@ const triageClass: Record<ScanEntry['triage'], string> = {
 const ALL_CRITERIA = ['A', 'B', 'C', 'D', 'E'];
 
 export default function Historial() {
+  const raw = localStorage.getItem('melascan_historial');
+  const entries: AnalysisRecord[] = raw ? JSON.parse(raw) : [];
+
   return (
     <div className="shell">
       <Sidebar />
@@ -55,7 +56,7 @@ export default function Historial() {
               ) : (
                 entries.map((entry) => (
                   <tr key={entry.id}>
-                    <td><div className="historial-thumb" /></td>
+                    <td><img src={entry.imageDataUrl} alt="Lesión" className="historial-thumb" /></td>
                     <td>{entry.date}</td>
                     <td>
                       <span className={`risk-badge ${triageClass[entry.triage]}`}>
@@ -71,8 +72,8 @@ export default function Historial() {
                         ))}
                       </div>
                     </td>
-                    <td>{entry.riskPercentage}%</td>
-                    <td>{entry.description}</td>
+                    <td>{entry.riskPercentage !== null ? `${entry.riskPercentage}%` : '—'}</td>
+                    <td>{entry.description || '—'}</td>
                   </tr>
                 ))
               )}

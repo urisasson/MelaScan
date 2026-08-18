@@ -306,3 +306,5 @@ h1, h2, h3, h4 { font-family: 'Fraunces', serif; font-weight: 500; margin: 0; }
 .analysis-full-image-placeholder { width: 100%; min-height: 380px; background: var(--line); border-radius: 12px; }
 .abcde-mini-card.used { background: var(--accent); color: #fff; }
 .abcde-mini-card.used .abcde-mini-letter { color: #fff; }
+
+.historial-thumb { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; background: var(--line); }

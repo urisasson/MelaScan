@@ -1,21 +1,20 @@
 import { useState } from 'react';
 import Sidebar from '../components/Sidebar';
 
-interface AnalysisEntry {
+interface AnalysisRecord {
   id: string;
   date: string;
-  triage: 'bajo' | 'moderado' | 'alto';
-  criteriaUsed: string[]; // subconjunto de ['A','B','C','D','E']
-  riskPercentage: number;
-  doctorName: string;
-  imageUrl?: string;
+  imageDataUrl: string;
+  triage: 'pendiente' | 'bajo' | 'moderado' | 'alto';
+  riskPercentage: number | null;
+  criteriaUsed: string[];
+  description: string;
+  sentToPatient: boolean;
+  patientName?: string;
 }
 
-// TODO: reemplazar por GET /mis-analisis al backend de Franco
-// (los análisis que el médico compartió con este paciente)
-const analyses: AnalysisEntry[] = [];
-
-const triageClass: Record<AnalysisEntry['triage'], string> = {
+const triageClass: Record<AnalysisRecord['triage'], string> = {
+  pendiente: 'risk-pending',
   bajo: 'risk-low',
   moderado: 'risk-mid',
   alto: 'risk-high',
@@ -25,25 +24,25 @@ const ALL_CRITERIA = ['A', 'B', 'C', 'D', 'E'];
 
 export default function MisAnalisis() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const raw = localStorage.getItem('melascan_historial');
+  const all: AnalysisRecord[] = raw ? JSON.parse(raw) : [];
+  const analyses = all.filter((r) => r.sentToPatient);
+
   const selected = analyses.find((a) => a.id === selectedId) ?? null;
 
-  // Vista de detalle: se queda en la misma pantalla, no navega a otra ruta
   if (selected) {
     return (
       <div className="shell">
         <Sidebar />
         <main className="shell-content">
           <button className="back-link" onClick={() => setSelectedId(null)}>
-            ‹ Análisis de {selected.doctorName}
+            ‹ Volver a Mis Análisis
           </button>
 
           <div className="scanner-grid">
             <div className="lesion-panel">
-              {selected.imageUrl ? (
-                <img src={selected.imageUrl} alt="Lesión analizada" className="analysis-full-image" />
-              ) : (
-                <div className="analysis-full-image-placeholder" />
-              )}
+              <img src={selected.imageDataUrl} alt="Lesión analizada" className="analysis-full-image" />
             </div>
 
             <div className="result-panel">
@@ -51,7 +50,9 @@ export default function MisAnalisis() {
                 <span className={`risk-badge ${triageClass[selected.triage]}`}>
                   <span className="dot" />Riesgo {selected.triage}
                 </span>
-                <span className="prob-value">Riesgo IA: {selected.riskPercentage}%</span>
+                <span className="prob-value">
+                  Riesgo IA: {selected.riskPercentage !== null ? `${selected.riskPercentage}%` : '—'}
+                </span>
               </div>
 
               <div className="result-block-section">
@@ -68,14 +69,12 @@ export default function MisAnalisis() {
                 </div>
               </div>
 
-              <div className="result-block-section">
-                <h4>Acciones recomendadas</h4>
-                <ol className="actions-list">
-                  <li>—</li>
-                  <li>—</li>
-                  <li>—</li>
-                </ol>
-              </div>
+              {selected.description && (
+                <div className="result-block-section">
+                  <h4>Descripción de tu médico</h4>
+                  <p style={{ fontSize: 13.5, color: 'var(--muted)' }}>{selected.description}</p>
+                </div>
+              )}
 
               <div className="disclaimer">
                 Este resultado es orientativo y no reemplaza el diagnóstico médico ni la biopsia.
@@ -88,7 +87,6 @@ export default function MisAnalisis() {
     );
   }
 
-  // Vista de lista
   return (
     <div className="shell">
       <Sidebar />
@@ -96,7 +94,7 @@ export default function MisAnalisis() {
         <div className="historial-head">
           <div>
             <h1>Mis Análisis</h1>
-            <p>Acá podrás revisar los análisis que tu médico te envió. Para ver más detalles del análisis, cliqueálo.</p>
+            <p>Acá podrás revisar los análisis que tu médico te envió. Para ver más detalles, cliqueálo.</p>
           </div>
         </div>
 
@@ -120,7 +118,7 @@ export default function MisAnalisis() {
               ) : (
                 analyses.map((entry) => (
                   <tr key={entry.id} className="clickable-row" onClick={() => setSelectedId(entry.id)}>
-                    <td><div className="historial-thumb" /></td>
+                    <td><img src={entry.imageDataUrl} alt="Lesión" className="historial-thumb" /></td>
                     <td>{entry.date}</td>
                     <td>
                       <span className={`risk-badge ${triageClass[entry.triage]}`}>
@@ -136,8 +134,8 @@ export default function MisAnalisis() {
                         ))}
                       </div>
                     </td>
-                    <td>{entry.riskPercentage}%</td>
-                    <td>{entry.doctorName}</td>
+                    <td>{entry.riskPercentage !== null ? `${entry.riskPercentage}%` : '—'}</td>
+                    <td>Tu médico</td>
                   </tr>
                 ))
               )}
