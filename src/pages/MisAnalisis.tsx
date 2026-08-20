@@ -8,7 +8,6 @@ interface AnalysisRecord {
   triage: 'pendiente' | 'bajo' | 'moderado' | 'alto';
   riskPercentage: number | null;
   criteriaUsed: string[];
-  description: string;
   sentToPatient: boolean;
   doctorName?: string;
   patientEmail?: string;
@@ -78,12 +77,14 @@ export default function MisAnalisis() {
                 </div>
               </div>
 
-              {selected.description && (
-                <div className="result-block-section">
-                  <h4>Descripción de {selected.doctorName ?? 'tu médico'}</h4>
-                  <p style={{ fontSize: 13.5, color: 'var(--muted)' }}>{selected.description}</p>
-                </div>
-              )}
+              <div className="result-block-section">
+                <h4>Acciones recomendadas</h4>
+                <ol className="actions-list">
+                  <li>—</li>
+                  <li>—</li>
+                  <li>—</li>
+                </ol>
+              </div>
 
               <div className="disclaimer">
                 Este resultado es orientativo y no reemplaza el diagnóstico médico ni la biopsia.
