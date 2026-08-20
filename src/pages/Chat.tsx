@@ -7,6 +7,7 @@ interface StoredUser {
   email: string;
   role: 'medico' | 'paciente';
   assignedDoctorEmail?: string;
+  photoDataUrl?: string;
 }
 
 interface Session {
@@ -23,8 +24,21 @@ interface ChatMessage {
 }
 
 interface Conversation {
-  id: string;
+  id: string; // "medicoEmail__pacienteEmail", siempre en este orden en ambos lados
   name: string;
+  photoDataUrl?: string;
+}
+
+function Avatar({ photoDataUrl }: { photoDataUrl?: string }) {
+  if (photoDataUrl) return <img src={photoDataUrl} alt="Foto de perfil" className="avatar-img" />;
+  return (
+    <span className="avatar-placeholder">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+      </svg>
+    </span>
+  );
 }
 
 export default function Chat() {
@@ -37,15 +51,19 @@ export default function Chat() {
   let conversations: Conversation[] = [];
 
   if (session?.role === 'medico') {
+    // El chat existe con TODOS los pacientes que, al registrarse, eligieron a este médico
+    // como su médico asignado — sin importar si ya recibieron un análisis o no.
     const myPatients = users.filter((u) => u.role === 'paciente' && u.assignedDoctorEmail === session.email);
     conversations = myPatients.map((p) => ({
       id: `${session.email}__${p.email}`,
       name: p.name,
+      photoDataUrl: p.photoDataUrl,
     }));
   } else if (session?.role === 'paciente' && session.assignedDoctorEmail) {
+    // El paciente SOLO puede chatear con el médico que tiene asignado.
     const myDoctor = users.find((u) => u.email === session.assignedDoctorEmail);
     conversations = myDoctor
-      ? [{ id: `${myDoctor.email}__${session.email}`, name: myDoctor.name }]
+      ? [{ id: `${myDoctor.email}__${session.email}`, name: myDoctor.name, photoDataUrl: myDoctor.photoDataUrl }]
       : [];
   }
 
@@ -84,7 +102,7 @@ export default function Chat() {
             {conversations.length === 0 ? (
               <div className="empty-cell" style={{ padding: '24px 16px' }}>
                 {session?.role === 'medico'
-                  ? 'Todavía no tenés pacientes que te hayan asignado.'
+                  ? 'Todavía no tenés pacientes que te hayan asignado como médico.'
                   : 'Todavía no tenés un médico asignado.'}
               </div>
             ) : (
@@ -94,7 +112,7 @@ export default function Chat() {
                   className={`conversation-row${selectedId === c.id ? ' active' : ''}`}
                   onClick={() => handleSelect(c.id)}
                 >
-                  <span className="conversation-avatar" />
+                  <Avatar photoDataUrl={c.photoDataUrl} />
                   <span>{c.name}</span>
                 </button>
               ))
@@ -109,7 +127,7 @@ export default function Chat() {
             ) : (
               <>
                 <div className="chat-header">
-                  <span className="conversation-avatar" />
+                  <Avatar photoDataUrl={selected.photoDataUrl} />
                   <span>{selected.name}</span>
                 </div>
                 <div className="chat-messages">

@@ -7,8 +7,6 @@ interface StoredUser {
   email: string;
   password: string;
   role: 'medico' | 'paciente';
-  specialty?: string;
-  assignedDoctorEmail?: string;
 }
 
 interface Props {
@@ -45,7 +43,7 @@ export default function Login({ onClose, onSwitchToRegister }: Props) {
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop">
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose} aria-label="Cerrar">✕</button>
         <h2>Iniciar Sesión</h2>

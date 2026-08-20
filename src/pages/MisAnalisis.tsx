@@ -10,6 +10,7 @@ interface AnalysisRecord {
   criteriaUsed: string[];
   description: string;
   sentToPatient: boolean;
+  doctorName?: string;
   patientEmail?: string;
 }
 
@@ -79,7 +80,7 @@ export default function MisAnalisis() {
 
               {selected.description && (
                 <div className="result-block-section">
-                  <h4>Descripción de tu médico</h4>
+                  <h4>Descripción de {selected.doctorName ?? 'tu médico'}</h4>
                   <p style={{ fontSize: 13.5, color: 'var(--muted)' }}>{selected.description}</p>
                 </div>
               )}
@@ -144,7 +145,7 @@ export default function MisAnalisis() {
                       </div>
                     </td>
                     <td>{entry.riskPercentage !== null ? `${entry.riskPercentage}%` : '—'}</td>
-                    <td>Tu médico</td>
+                    <td>{entry.doctorName ?? 'Tu médico'}</td>
                   </tr>
                 ))
               )}

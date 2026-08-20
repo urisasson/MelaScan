@@ -19,17 +19,35 @@ interface Props {
 
 export default function Register({ initialRole = 'paciente', onClose, onSwitchToLogin }: Props) {
   const [role, setRole] = useState<'paciente' | 'medico'>(initialRole);
-  const [name, setName] = useState('');
+
+  // Nombre: una variable por rol, igual que especialidad/médico asignado,
+  // así al cambiar de rol no se mezcla lo que escribiste en el otro.
+  const [nameMedico, setNameMedico] = useState('');
+  const [namePaciente, setNamePaciente] = useState('');
+  const name = role === 'medico' ? nameMedico : namePaciente;
+  const setName = role === 'medico' ? setNameMedico : setNamePaciente;
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
   const [specialty, setSpecialty] = useState('');
+
   const [assignedDoctorEmail, setAssignedDoctorEmail] = useState('');
+  const [doctorQuery, setDoctorQuery] = useState('');
+  const [showDoctorDropdown, setShowDoctorDropdown] = useState(false);
+
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const raw = localStorage.getItem('melascan_users');
   const users: StoredUser[] = raw ? JSON.parse(raw) : [];
-  const doctors = users.filter((u) => u.role === 'medico');
+  const doctors = users.filter((u) => u.role === 'medico').sort((a, b) => a.name.localeCompare(b.name));
+
+  const filteredDoctors = doctors.filter((d) => {
+    const q = doctorQuery.trim().toLowerCase();
+    if (!q) return true;
+    return d.name.toLowerCase().split(' ').some((word) => word.startsWith(q));
+  });
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -44,7 +62,7 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
     }
 
     if (role === 'paciente' && !assignedDoctorEmail) {
-      setError('Elegí un médico asignado.');
+      setError('Elegí un médico asignado de la lista.');
       return;
     }
 
@@ -64,7 +82,7 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop">
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose} aria-label="Cerrar">✕</button>
         <h2>Registrarse</h2>
@@ -108,12 +126,36 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
               {doctors.length === 0 ? (
                 <p className="form-hint">Todavía no hay médicos registrados. Pedile a tu médico que se registre primero.</p>
               ) : (
-                <select value={assignedDoctorEmail} onChange={(e) => setAssignedDoctorEmail(e.target.value)} required>
-                  <option value="" disabled>Elegí tu médico…</option>
-                  {doctors.map((d) => (
-                    <option key={d.email} value={d.email}>{d.name}</option>
-                  ))}
-                </select>
+                <div className="searchable-select">
+                  <input
+                    value={doctorQuery}
+                    onChange={(e) => { setDoctorQuery(e.target.value); setAssignedDoctorEmail(''); }}
+                    onFocus={() => setShowDoctorDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowDoctorDropdown(false), 150)}
+                    placeholder="Buscar médico por nombre…"
+                  />
+                  {showDoctorDropdown && (
+                    <div className="searchable-dropdown">
+                      {filteredDoctors.length === 0 ? (
+                        <div className="searchable-empty">Sin resultados</div>
+                      ) : (
+                        filteredDoctors.map((d) => (
+                          <button
+                            key={d.email}
+                            type="button"
+                            onMouseDown={() => {
+                              setAssignedDoctorEmail(d.email);
+                              setDoctorQuery(d.name);
+                              setShowDoctorDropdown(false);
+                            }}
+                          >
+                            {d.name}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
             </label>
           )}

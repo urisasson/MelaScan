@@ -256,3 +256,50 @@ h1, h2, h3, h4 { font-family: 'Fraunces', serif; font-weight: 500; margin: 0; }
   .mole-examples-grid { grid-template-columns: 1fr; }
   .chat-shell { grid-template-columns: 1fr; }
 }
+
+/* ==================== Buscador con filtro (paciente / médico) ==================== */
+.searchable-select { position: relative; }
+.searchable-select input { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 13.5px; font-family: inherit; }
+.searchable-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; max-height: 220px; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(27, 59, 57, 0.12); z-index: 30; display: flex; flex-direction: column;
+}
+.searchable-dropdown button { text-align: left; padding: 10px 12px; background: none; border: none; font-size: 13.5px; cursor: pointer; }
+.searchable-dropdown button:hover { background: var(--paper); }
+.searchable-empty { padding: 10px 12px; font-size: 13px; color: var(--muted); }
+
+/* ==================== Confirmación de envío ==================== */
+.confirm-send-box { background: var(--paper); border-radius: 8px; padding: 12px 14px; font-size: 13.5px; }
+.confirm-send-actions { display: flex; gap: 10px; margin-top: 10px; }
+
+/* ==================== Avatar / foto de perfil ==================== */
+.avatar-img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.avatar-placeholder {
+  width: 32px; height: 32px; border-radius: 50%; background: var(--line); color: var(--muted);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+
+/* ==================== Menú de perfil en el Sidebar ==================== */
+.sidebar-user { position: relative; margin-top: 12px; }
+.sidebar-user-btn {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px;
+  background: none; border: none; cursor: pointer; font-size: 13px; color: var(--muted); border-radius: 8px;
+}
+
+.sidebar-user-btn:hover { background: var(--paper); }
+.profile-menu-overlay { position: fixed; inset: 0; z-index: 40; background: transparent; }
+.profile-menu {
+  position: absolute; bottom: calc(100% + 8px); left: 0; right: 0; z-index: 50;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 6px;
+  display: flex; flex-direction: column; gap: 2px; box-shadow: 0 8px 20px rgba(27, 59, 57, 0.12);
+}
+.profile-menu button, .profile-menu label {
+  text-align: left; padding: 10px 12px; font-size: 13px; border-radius: 6px; cursor: pointer;
+  background: none; border: none; color: var(--ink);
+}
+.profile-menu button:hover, .profile-menu label:hover { background: var(--paper); }
+.profile-menu .danger { color: var(--red); }
+
+.selected-patient-row { display: flex; align-items: center; justify-content: space-between; font-size: 13.5px; margin-bottom: 10px; }
+.patient-actions-row { display: flex; gap: 10px; }

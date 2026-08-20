@@ -25,16 +25,21 @@ export default function Inicio() {
   };
 
   return (
-    <div className="landing-page">
+    // Tocar en cualquier lado de la página cierra el dropdown de "Registrarse".
+    <div className="landing-page" onClick={() => setOpenDropdown(null)}>
       <nav className="site-nav">
         <span className="nav-brand">MelaScan</span>
 
         <div className="nav-actions">
-          <button className="btn-secondary" onClick={() => setModalMode('login')}>
+          <button
+            className="btn-secondary"
+            onClick={() => { setOpenDropdown(null); setModalMode('login'); }}
+          >
             Iniciar Sesión
           </button>
 
-          <div className="auth-dropdown-wrap">
+          {/* stopPropagation acá para que abrir/usar este dropdown no dispare el cierre del onClick de arriba */}
+          <div className="auth-dropdown-wrap" onClick={(e) => e.stopPropagation()}>
             <button
               className="btn-primary"
               onClick={() => setOpenDropdown(openDropdown === 'register' ? null : 'register')}

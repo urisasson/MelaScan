@@ -12,6 +12,7 @@ interface AnalysisRecord {
   description: string;
   sentToPatient: boolean;
   doctorEmail: string;
+  doctorName?: string;
   patientEmail?: string;
   patientName?: string;
 }
@@ -20,10 +21,10 @@ interface StoredUser {
   name: string;
   email: string;
   role: 'medico' | 'paciente';
-  assignedDoctorEmail?: string;
 }
 
 interface Session {
+  name: string;
   email: string;
 }
 
@@ -44,15 +45,32 @@ export default function Home() {
   const [showTips, setShowTips] = useState(false);
   const [description, setDescription] = useState('');
   const [descriptionSaved, setDescriptionSaved] = useState(false);
-  const [sentTo, setSentTo] = useState<string | null>(null);
   const [recordId, setRecordId] = useState<string | null>(null);
+
+  // Paciente elegido en el buscador (todavía no implica ni guardado ni envío)
+  const [patientQuery, setPatientQuery] = useState('');
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<{ email: string; name: string } | null>(null);
+
+  const [patientSaved, setPatientSaved] = useState(false);
+  const [confirmingSend, setConfirmingSend] = useState(false);
+  const [locked, setLocked] = useState(false); // true solo después de confirmar el ENVÍO
+  const [sentTo, setSentTo] = useState<string | null>(null);
 
   const sessionRaw = localStorage.getItem('melascan_session');
   const session: Session | null = sessionRaw ? JSON.parse(sessionRaw) : null;
 
   const usersRaw = localStorage.getItem('melascan_users');
   const users: StoredUser[] = usersRaw ? JSON.parse(usersRaw) : [];
-  const myPatients = users.filter((u) => u.role === 'paciente' && u.assignedDoctorEmail === session?.email);
+
+  // El médico puede elegir a CUALQUIER paciente registrado, sin importar si está asignado a él.
+  const allPatients = users.filter((u) => u.role === 'paciente').sort((a, b) => a.name.localeCompare(b.name));
+
+  const filteredPatients = allPatients.filter((p) => {
+    const q = patientQuery.trim().toLowerCase();
+    if (!q) return true;
+    return p.name.toLowerCase().split(' ').some((word) => word.startsWith(q));
+  });
 
   const loadFile = (f: File | undefined) => {
     if (!f) return;
@@ -61,6 +79,12 @@ export default function Home() {
     setRecordId(null);
     setDescription('');
     setDescriptionSaved(false);
+    setPatientQuery('');
+    setShowPatientDropdown(false);
+    setSelectedPatient(null);
+    setPatientSaved(false);
+    setConfirmingSend(false);
+    setLocked(false);
     setSentTo(null);
     const reader = new FileReader();
     reader.onload = (e) => setPreview(e.target?.result as string);
@@ -100,6 +124,7 @@ export default function Home() {
       description: '',
       sentToPatient: false,
       doctorEmail: session.email,
+      doctorName: session.name,
     };
 
     historial.unshift(newRecord);
@@ -119,15 +144,32 @@ export default function Home() {
     setDescriptionSaved(true);
   };
 
-  const handleSendToPatient = (patientEmail: string, patientName: string) => {
-    if (!recordId) return;
+  // Solo guarda el nombre del paciente en el historial. NO lo envía.
+  const handleSavePatient = () => {
+    if (!recordId || !selectedPatient) return;
     const raw = localStorage.getItem('melascan_historial');
     const historial: AnalysisRecord[] = raw ? JSON.parse(raw) : [];
     const updated = historial.map((r) =>
-      r.id === recordId ? { ...r, sentToPatient: true, patientEmail, patientName } : r
+      r.id === recordId ? { ...r, patientEmail: selectedPatient.email, patientName: selectedPatient.name } : r
     );
     localStorage.setItem('melascan_historial', JSON.stringify(updated));
-    setSentTo(patientName);
+    setPatientSaved(true);
+  };
+
+  // Envía de verdad el análisis al paciente (esto sí lo hace aparecer en Mis Análisis del paciente).
+  const handleConfirmSend = () => {
+    if (!recordId || !selectedPatient) return;
+    const raw = localStorage.getItem('melascan_historial');
+    const historial: AnalysisRecord[] = raw ? JSON.parse(raw) : [];
+    const updated = historial.map((r) =>
+      r.id === recordId
+        ? { ...r, patientEmail: selectedPatient.email, patientName: selectedPatient.name, sentToPatient: true }
+        : r
+    );
+    localStorage.setItem('melascan_historial', JSON.stringify(updated));
+    setLocked(true);
+    setConfirmingSend(false);
+    setSentTo(selectedPatient.name);
   };
 
   return (
@@ -238,26 +280,71 @@ export default function Home() {
                 </div>
 
                 <div className="result-block-section">
-                  <h4>Enviar análisis a un paciente</h4>
-                  {myPatients.length === 0 ? (
-                    <p className="form-hint">Todavía no tenés pacientes registrados que te hayan asignado.</p>
+                  <h4>Paciente</h4>
+
+                  {allPatients.length === 0 ? (
+                    <p className="form-hint">Todavía no hay pacientes registrados en el sistema.</p>
+                  ) : locked ? (
+                    <span className="sent-confirm">Enviado a {sentTo} ✓</span>
+                  ) : confirmingSend && selectedPatient ? (
+                    <div className="confirm-send-box">
+                      <p>¿Enviar este análisis a <strong>{selectedPatient.name}</strong>?</p>
+                      <div className="confirm-send-actions">
+                        <button className="btn-secondary" onClick={() => setConfirmingSend(false)}>Cancelar</button>
+                        <button className="btn-primary" onClick={handleConfirmSend}>Confirmar envío</button>
+                      </div>
+                    </div>
+                  ) : !selectedPatient ? (
+                    <div className="searchable-select">
+                      <input
+                        value={patientQuery}
+                        onChange={(e) => setPatientQuery(e.target.value)}
+                        onFocus={() => setShowPatientDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowPatientDropdown(false), 150)}
+                        placeholder="Elegí un paciente…"
+                      />
+                      {showPatientDropdown && (
+                        <div className="searchable-dropdown">
+                          {filteredPatients.length === 0 ? (
+                            <div className="searchable-empty">Sin resultados</div>
+                          ) : (
+                            filteredPatients.map((p) => (
+                              <button
+                                key={p.email}
+                                type="button"
+                                onMouseDown={() => {
+                                  setSelectedPatient({ email: p.email, name: p.name });
+                                  setPatientQuery(p.name);
+                                  setShowPatientDropdown(false);
+                                  setPatientSaved(false);
+                                }}
+                              >
+                                {p.name}
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
                   ) : (
-                    <div className="inline-form-row">
-                      <select
-                        defaultValue=""
-                        onChange={(e) => {
-                          const patient = myPatients.find((p) => p.email === e.target.value);
-                          if (patient) handleSendToPatient(patient.email, patient.name);
-                        }}
-                      >
-                        <option value="" disabled>Elegí un paciente…</option>
-                        {myPatients.map((p) => (
-                          <option key={p.email} value={p.email}>{p.name}</option>
-                        ))}
-                      </select>
+                    <div>
+                      <div className="selected-patient-row">
+                        <span>Paciente elegido: <strong>{selectedPatient.name}</strong></span>
+                        <button
+                          type="button"
+                          className="link-btn"
+                          onClick={() => { setSelectedPatient(null); setPatientQuery(''); setPatientSaved(false); }}
+                        >
+                          Cambiar
+                        </button>
+                      </div>
+                      <div className="patient-actions-row">
+                        <button className="btn-secondary" onClick={handleSavePatient}>Guardar</button>
+                        <button className="btn-primary" onClick={() => setConfirmingSend(true)}>Enviar</button>
+                      </div>
+                      {patientSaved && <span className="sent-confirm">Guardado en el historial ✓</span>}
                     </div>
                   )}
-                  {sentTo && <span className="sent-confirm">Enviado a {sentTo} ✓</span>}
                 </div>
 
                 <div className="disclaimer">
