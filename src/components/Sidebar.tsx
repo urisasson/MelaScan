@@ -1,6 +1,9 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
-type Role = 'medico' | 'paciente';
+interface Session {
+  name: string;
+  role: 'medico' | 'paciente';
+}
 
 const NAV_MEDICO = [
   { label: 'Scaner IA', path: '/home' },
@@ -17,8 +20,16 @@ const NAV_PACIENTE = [
 
 export default function Sidebar() {
   const location = useLocation();
-  const role = (localStorage.getItem('melascan_role') as Role) || 'paciente';
-  const items = role === 'medico' ? NAV_MEDICO : NAV_PACIENTE;
+  const navigate = useNavigate();
+
+  const raw = localStorage.getItem('melascan_session');
+  const session: Session | null = raw ? JSON.parse(raw) : null;
+  const items = session?.role === 'medico' ? NAV_MEDICO : NAV_PACIENTE;
+
+  const handleLogout = () => {
+    localStorage.removeItem('melascan_session');
+    navigate('/');
+  };
 
   return (
     <aside className="sidebar">
@@ -36,9 +47,11 @@ export default function Sidebar() {
         ))}
       </nav>
 
+      <button className="sidebar-logout-btn" onClick={handleLogout}>Cerrar sesión</button>
+
       <div className="sidebar-user">
         <span className="sidebar-avatar" />
-        <span>Nombre de usuario</span>
+        <span>{session?.name ?? 'Nombre de usuario'}</span>
       </div>
     </aside>
   );

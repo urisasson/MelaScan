@@ -10,7 +10,11 @@ interface AnalysisRecord {
   criteriaUsed: string[];
   description: string;
   sentToPatient: boolean;
-  patientName?: string;
+  patientEmail?: string;
+}
+
+interface Session {
+  email: string;
 }
 
 const triageClass: Record<AnalysisRecord['triage'], string> = {
@@ -27,8 +31,11 @@ export default function MisAnalisis() {
 
   const raw = localStorage.getItem('melascan_historial');
   const all: AnalysisRecord[] = raw ? JSON.parse(raw) : [];
-  const analyses = all.filter((r) => r.sentToPatient);
 
+  const sessionRaw = localStorage.getItem('melascan_session');
+  const session: Session | null = sessionRaw ? JSON.parse(sessionRaw) : null;
+
+  const analyses = all.filter((r) => r.sentToPatient && r.patientEmail === session?.email);
   const selected = analyses.find((a) => a.id === selectedId) ?? null;
 
   if (selected) {
@@ -48,7 +55,8 @@ export default function MisAnalisis() {
             <div className="result-panel">
               <div className="result-top">
                 <span className={`risk-badge ${triageClass[selected.triage]}`}>
-                  <span className="dot" />Riesgo {selected.triage}
+                  <span className="dot" />
+                  {selected.triage === 'pendiente' ? '—' : `Riesgo ${selected.triage}`}
                 </span>
                 <span className="prob-value">
                   Riesgo IA: {selected.riskPercentage !== null ? `${selected.riskPercentage}%` : '—'}
@@ -122,7 +130,8 @@ export default function MisAnalisis() {
                     <td>{entry.date}</td>
                     <td>
                       <span className={`risk-badge ${triageClass[entry.triage]}`}>
-                        <span className="dot" />{entry.triage}
+                        <span className="dot" />
+                        {entry.triage === 'pendiente' ? '—' : entry.triage}
                       </span>
                     </td>
                     <td>

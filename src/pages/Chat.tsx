@@ -2,9 +2,18 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import Sidebar from '../components/Sidebar';
 
-interface AnalysisRecord {
-  sentToPatient: boolean;
-  patientName?: string;
+interface StoredUser {
+  name: string;
+  email: string;
+  role: 'medico' | 'paciente';
+  assignedDoctorEmail?: string;
+}
+
+interface Session {
+  name: string;
+  email: string;
+  role: 'medico' | 'paciente';
+  assignedDoctorEmail?: string;
 }
 
 interface ChatMessage {
@@ -19,20 +28,25 @@ interface Conversation {
 }
 
 export default function Chat() {
-  const role = (localStorage.getItem('melascan_role') as 'medico' | 'paciente') || 'paciente';
+  const sessionRaw = localStorage.getItem('melascan_session');
+  const session: Session | null = sessionRaw ? JSON.parse(sessionRaw) : null;
 
-  // Médico: una conversación por cada paciente al que le envió un análisis.
-  // Paciente: una sola conversación con "su médico" (genérico hasta que haya cuentas reales).
+  const usersRaw = localStorage.getItem('melascan_users');
+  const users: StoredUser[] = usersRaw ? JSON.parse(usersRaw) : [];
+
   let conversations: Conversation[] = [];
-  if (role === 'medico') {
-    const raw = localStorage.getItem('melascan_historial');
-    const historial: AnalysisRecord[] = raw ? JSON.parse(raw) : [];
-    const patientNames = Array.from(
-      new Set(historial.filter((r) => r.sentToPatient && r.patientName).map((r) => r.patientName as string))
-    );
-    conversations = patientNames.map((name) => ({ id: name, name }));
-  } else {
-    conversations = [{ id: 'medico-generico', name: 'Tu médico' }];
+
+  if (session?.role === 'medico') {
+    const myPatients = users.filter((u) => u.role === 'paciente' && u.assignedDoctorEmail === session.email);
+    conversations = myPatients.map((p) => ({
+      id: `${session.email}__${p.email}`,
+      name: p.name,
+    }));
+  } else if (session?.role === 'paciente' && session.assignedDoctorEmail) {
+    const myDoctor = users.find((u) => u.email === session.assignedDoctorEmail);
+    conversations = myDoctor
+      ? [{ id: `${myDoctor.email}__${session.email}`, name: myDoctor.name }]
+      : [];
   }
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -49,11 +63,11 @@ export default function Chat() {
 
   const handleSend = (e: FormEvent) => {
     e.preventDefault();
-    if (!draft.trim() || !selected) return;
+    if (!draft.trim() || !selected || !session) return;
 
     const raw = localStorage.getItem('melascan_chat_' + selected.id);
     const current: ChatMessage[] = raw ? JSON.parse(raw) : [];
-    const newMessage: ChatMessage = { id: current.length + 1, senderRole: role, text: draft };
+    const newMessage: ChatMessage = { id: current.length + 1, senderRole: session.role, text: draft };
     const updated = [...current, newMessage];
 
     localStorage.setItem('melascan_chat_' + selected.id, JSON.stringify(updated));
@@ -69,9 +83,9 @@ export default function Chat() {
           <div className="conversations-list">
             {conversations.length === 0 ? (
               <div className="empty-cell" style={{ padding: '24px 16px' }}>
-                {role === 'medico'
-                  ? 'Todavía no le enviaste ningún análisis a un paciente.'
-                  : 'Todavía no tenés conversación con tu médico.'}
+                {session?.role === 'medico'
+                  ? 'Todavía no tenés pacientes que te hayan asignado.'
+                  : 'Todavía no tenés un médico asignado.'}
               </div>
             ) : (
               conversations.map((c) => (
@@ -103,7 +117,7 @@ export default function Chat() {
                     <div className="empty-cell">Todavía no hay mensajes en esta conversación.</div>
                   ) : (
                     messages.map((m) => (
-                      <div className={`chat-bubble ${m.senderRole === role ? 'me' : 'other'}`} key={m.id}>
+                      <div className={`chat-bubble ${m.senderRole === session?.role ? 'me' : 'other'}`} key={m.id}>
                         {m.text}
                       </div>
                     ))

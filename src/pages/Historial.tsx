@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 
@@ -9,6 +10,12 @@ interface AnalysisRecord {
   riskPercentage: number | null;
   criteriaUsed: string[];
   description: string;
+  doctorEmail?: string;
+  patientName?: string;
+}
+
+interface Session {
+  email: string;
 }
 
 const triageClass: Record<AnalysisRecord['triage'], string> = {
@@ -21,8 +28,16 @@ const triageClass: Record<AnalysisRecord['triage'], string> = {
 const ALL_CRITERIA = ['A', 'B', 'C', 'D', 'E'];
 
 export default function Historial() {
+  const [search, setSearch] = useState('');
+
   const raw = localStorage.getItem('melascan_historial');
-  const entries: AnalysisRecord[] = raw ? JSON.parse(raw) : [];
+  const all: AnalysisRecord[] = raw ? JSON.parse(raw) : [];
+
+  const sessionRaw = localStorage.getItem('melascan_session');
+  const session: Session | null = sessionRaw ? JSON.parse(sessionRaw) : null;
+
+  const myEntries = all.filter((r) => r.doctorEmail === session?.email);
+  const entries = myEntries.filter((r) => (r.patientName ?? '').toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="shell">
@@ -36,11 +51,19 @@ export default function Historial() {
           <Link to="/home" className="btn-primary">+ Realizar otro escaneo</Link>
         </div>
 
+        <input
+          className="search-bar"
+          placeholder="Buscar por nombre de paciente…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+
         <div className="historial-table-wrap">
           <table className="historial-table">
             <thead>
               <tr>
                 <th>Lesión y muestra</th>
+                <th>Paciente</th>
                 <th>Fecha de escaneo</th>
                 <th>Resultado triage</th>
                 <th>Criterio ABCDE</th>
@@ -51,16 +74,20 @@ export default function Historial() {
             <tbody>
               {entries.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="empty-cell">Todavía no hay escaneos registrados.</td>
+                  <td colSpan={7} className="empty-cell">
+                    {myEntries.length === 0 ? 'Todavía no hay escaneos registrados.' : 'No se encontraron análisis con ese paciente.'}
+                  </td>
                 </tr>
               ) : (
                 entries.map((entry) => (
                   <tr key={entry.id}>
                     <td><img src={entry.imageDataUrl} alt="Lesión" className="historial-thumb" /></td>
+                    <td>{entry.patientName ?? '—'}</td>
                     <td>{entry.date}</td>
                     <td>
                       <span className={`risk-badge ${triageClass[entry.triage]}`}>
-                        <span className="dot" />{entry.triage}
+                        <span className="dot" />
+                        {entry.triage === 'pendiente' ? '—' : entry.triage}
                       </span>
                     </td>
                     <td>

@@ -11,7 +11,20 @@ interface AnalysisRecord {
   criteriaUsed: string[];
   description: string;
   sentToPatient: boolean;
+  doctorEmail: string;
+  patientEmail?: string;
   patientName?: string;
+}
+
+interface StoredUser {
+  name: string;
+  email: string;
+  role: 'medico' | 'paciente';
+  assignedDoctorEmail?: string;
+}
+
+interface Session {
+  email: string;
 }
 
 const ABCDE_CRITERIA = [
@@ -31,9 +44,15 @@ export default function Home() {
   const [showTips, setShowTips] = useState(false);
   const [description, setDescription] = useState('');
   const [descriptionSaved, setDescriptionSaved] = useState(false);
-  const [patientId, setPatientId] = useState('');
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [recordId, setRecordId] = useState<string | null>(null);
+
+  const sessionRaw = localStorage.getItem('melascan_session');
+  const session: Session | null = sessionRaw ? JSON.parse(sessionRaw) : null;
+
+  const usersRaw = localStorage.getItem('melascan_users');
+  const users: StoredUser[] = usersRaw ? JSON.parse(usersRaw) : [];
+  const myPatients = users.filter((u) => u.role === 'paciente' && u.assignedDoctorEmail === session?.email);
 
   const loadFile = (f: File | undefined) => {
     if (!f) return;
@@ -42,7 +61,6 @@ export default function Home() {
     setRecordId(null);
     setDescription('');
     setDescriptionSaved(false);
-    setPatientId('');
     setSentTo(null);
     const reader = new FileReader();
     reader.onload = (e) => setPreview(e.target?.result as string);
@@ -58,7 +76,7 @@ export default function Home() {
   };
 
   const handleAnalyze = async () => {
-    if (!file || !preview) return;
+    if (!file || !preview || !session) return;
     setAnalyzing(true);
 
     // TODO: reemplazar por la llamada real a la API de IA (FastAPI) de Ezequiel
@@ -81,6 +99,7 @@ export default function Home() {
       criteriaUsed: [],
       description: '',
       sentToPatient: false,
+      doctorEmail: session.email,
     };
 
     historial.unshift(newRecord);
@@ -100,15 +119,15 @@ export default function Home() {
     setDescriptionSaved(true);
   };
 
-  const handleSendToPatient = () => {
-    if (!recordId || !patientId.trim()) return;
+  const handleSendToPatient = (patientEmail: string, patientName: string) => {
+    if (!recordId) return;
     const raw = localStorage.getItem('melascan_historial');
     const historial: AnalysisRecord[] = raw ? JSON.parse(raw) : [];
     const updated = historial.map((r) =>
-      r.id === recordId ? { ...r, sentToPatient: true, patientName: patientId.trim() } : r
+      r.id === recordId ? { ...r, sentToPatient: true, patientEmail, patientName } : r
     );
     localStorage.setItem('melascan_historial', JSON.stringify(updated));
-    setSentTo(patientId.trim());
+    setSentTo(patientName);
   };
 
   return (
@@ -179,7 +198,7 @@ export default function Home() {
             ) : (
               <>
                 <div className="result-top">
-                  <span className="risk-badge risk-pending"><span className="dot" />Riesgo pendiente</span>
+                  <span className="risk-badge risk-pending"><span className="dot" />Riesgo —</span>
                   <span className="prob-value">Riesgo IA: —%</span>
                 </div>
 
@@ -211,7 +230,7 @@ export default function Home() {
                     <input
                       value={description}
                       onChange={(e) => { setDescription(e.target.value); setDescriptionSaved(false); }}
-                      placeholder="Ej: Lunar en brazo derecho, paciente Juan Pérez"
+                      placeholder="Ej: Lunar en brazo derecho"
                     />
                     <button className="btn-secondary" onClick={handleSaveDescription}>Guardar</button>
                   </div>
@@ -220,14 +239,24 @@ export default function Home() {
 
                 <div className="result-block-section">
                   <h4>Enviar análisis a un paciente</h4>
-                  <div className="inline-form-row">
-                    <input
-                      value={patientId}
-                      onChange={(e) => setPatientId(e.target.value)}
-                      placeholder="Nombre del paciente"
-                    />
-                    <button className="btn-primary" onClick={handleSendToPatient}>Enviar</button>
-                  </div>
+                  {myPatients.length === 0 ? (
+                    <p className="form-hint">Todavía no tenés pacientes registrados que te hayan asignado.</p>
+                  ) : (
+                    <div className="inline-form-row">
+                      <select
+                        defaultValue=""
+                        onChange={(e) => {
+                          const patient = myPatients.find((p) => p.email === e.target.value);
+                          if (patient) handleSendToPatient(patient.email, patient.name);
+                        }}
+                      >
+                        <option value="" disabled>Elegí un paciente…</option>
+                        {myPatients.map((p) => (
+                          <option key={p.email} value={p.email}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   {sentTo && <span className="sent-confirm">Enviado a {sentTo} ✓</span>}
                 </div>
 

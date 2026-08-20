@@ -16,36 +16,23 @@ const FEATURES = [
 export default function Inicio() {
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [modalRole, setModalRole] = useState<Role>('paciente');
-  const [openDropdown, setOpenDropdown] = useState<ModalMode>(null);
+  const [openDropdown, setOpenDropdown] = useState<'register' | null>(null);
 
-  const openAuth = (mode: 'login' | 'register', role: Role) => {
+  const openRegister = (role: Role) => {
     setModalRole(role);
-    setModalMode(mode);
+    setModalMode('register');
     setOpenDropdown(null);
   };
 
   return (
     <div className="landing-page">
       <nav className="site-nav">
-        {/* Logo de texto por ahora. Cuando tengan el logo definitivo de Iván,
-            reemplazar este <span> por <img src="/logo.svg" alt="MelaScan" /> */}
         <span className="nav-brand">MelaScan</span>
 
         <div className="nav-actions">
-          <div className="auth-dropdown-wrap">
-            <button
-              className="btn-secondary"
-              onClick={() => setOpenDropdown(openDropdown === 'login' ? null : 'login')}
-            >
-              Iniciar Sesión
-            </button>
-            {openDropdown === 'login' && (
-              <div className="auth-dropdown">
-                <button onClick={() => openAuth('login', 'paciente')}>Como paciente</button>
-                <button onClick={() => openAuth('login', 'medico')}>Como médico</button>
-              </div>
-            )}
-          </div>
+          <button className="btn-secondary" onClick={() => setModalMode('login')}>
+            Iniciar Sesión
+          </button>
 
           <div className="auth-dropdown-wrap">
             <button
@@ -56,8 +43,8 @@ export default function Inicio() {
             </button>
             {openDropdown === 'register' && (
               <div className="auth-dropdown">
-                <button onClick={() => openAuth('register', 'paciente')}>Como paciente</button>
-                <button onClick={() => openAuth('register', 'medico')}>Como médico</button>
+                <button onClick={() => openRegister('paciente')}>Como paciente</button>
+                <button onClick={() => openRegister('medico')}>Como médico</button>
               </div>
             )}
           </div>
@@ -106,11 +93,7 @@ export default function Inicio() {
       </footer>
 
       {modalMode === 'login' && (
-        <Login
-          initialRole={modalRole}
-          onClose={() => setModalMode(null)}
-          onSwitchToRegister={() => setModalMode('register')}
-        />
+        <Login onClose={() => setModalMode(null)} onSwitchToRegister={() => setModalMode('register')} />
       )}
       {modalMode === 'register' && (
         <Register
