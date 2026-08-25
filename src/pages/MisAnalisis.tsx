@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 
 interface AnalysisRecord {
@@ -28,6 +28,15 @@ const ALL_CRITERIA = ['A', 'B', 'C', 'D', 'E'];
 
 export default function MisAnalisis() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.path === '/mis-analisis') setSelectedId(null);
+    };
+    window.addEventListener('melascan-nav-reset', handler);
+    return () => window.removeEventListener('melascan-nav-reset', handler);
+  }, []);
 
   const raw = localStorage.getItem('melascan_historial');
   const all: AnalysisRecord[] = raw ? JSON.parse(raw) : [];
@@ -61,6 +70,11 @@ export default function MisAnalisis() {
                 <span className="prob-value">
                   Riesgo IA: {selected.riskPercentage !== null ? `${selected.riskPercentage}%` : '—'}
                 </span>
+              </div>
+
+              <div className="result-block-section">
+                <h4>Especialista</h4>
+                <p style={{ fontSize: 13.5 }}>{selected.doctorName ?? 'Sin datos'}</p>
               </div>
 
               <div className="result-block-section">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -20,8 +20,6 @@ interface Props {
 export default function Register({ initialRole = 'paciente', onClose, onSwitchToLogin }: Props) {
   const [role, setRole] = useState<'paciente' | 'medico'>(initialRole);
 
-  // Nombre: una variable por rol, igual que especialidad/médico asignado,
-  // así al cambiar de rol no se mezcla lo que escribiste en el otro.
   const [nameMedico, setNameMedico] = useState('');
   const [namePaciente, setNamePaciente] = useState('');
   const name = role === 'medico' ? nameMedico : namePaciente;
@@ -38,6 +36,11 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
 
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
 
   const raw = localStorage.getItem('melascan_users');
   const users: StoredUser[] = raw ? JSON.parse(raw) : [];
@@ -118,7 +121,12 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
           {role === 'medico' ? (
             <label className="field">
               <span>Especialidad</span>
-              <input value={specialty} onChange={(e) => setSpecialty(e.target.value)} placeholder="Ej: Dermatología clínica" />
+              <input
+                value={specialty}
+                onChange={(e) => setSpecialty(e.target.value)}
+                placeholder="Ej: Dermatología clínica"
+                required
+              />
             </label>
           ) : (
             <label className="field">
@@ -162,7 +170,7 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
 
           {error && <p className="form-error">{error}</p>}
 
-          <button type="submit" className="btn-primary auth-submit" disabled={role === 'paciente' && doctors.length === 0}>
+          <button type="submit" className="btn-primary auth-submit">
             Continuar
           </button>
         </form>

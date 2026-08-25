@@ -25,7 +25,6 @@ export default function Inicio() {
   };
 
   return (
-    // Tocar en cualquier lado de la página cierra el dropdown de "Registrarse".
     <div className="landing-page" onClick={() => setOpenDropdown(null)}>
       <nav className="site-nav">
         <span className="nav-brand">MelaScan</span>
@@ -38,7 +37,6 @@ export default function Inicio() {
             Iniciar Sesión
           </button>
 
-          {/* stopPropagation acá para que abrir/usar este dropdown no dispare el cierre del onClick de arriba */}
           <div className="auth-dropdown-wrap" onClick={(e) => e.stopPropagation()}>
             <button
               className="btn-primary"

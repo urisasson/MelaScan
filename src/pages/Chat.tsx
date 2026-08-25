@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import Sidebar from '../components/Sidebar';
 
@@ -7,6 +7,7 @@ interface StoredUser {
   email: string;
   role: 'medico' | 'paciente';
   assignedDoctorEmail?: string;
+  specialty?: string;
   photoDataUrl?: string;
 }
 
@@ -24,8 +25,9 @@ interface ChatMessage {
 }
 
 interface Conversation {
-  id: string; // "medicoEmail__pacienteEmail", siempre en este orden en ambos lados
+  id: string;
   name: string;
+  specialty?: string;
   photoDataUrl?: string;
 }
 
@@ -42,6 +44,22 @@ function Avatar({ photoDataUrl }: { photoDataUrl?: string }) {
 }
 
 export default function Chat() {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [draft, setDraft] = useState('');
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.path === '/chats') {
+        setSelectedId(null);
+        setMessages([]);
+      }
+    };
+    window.addEventListener('melascan-nav-reset', handler);
+    return () => window.removeEventListener('melascan-nav-reset', handler);
+  }, []);
+
   const sessionRaw = localStorage.getItem('melascan_session');
   const session: Session | null = sessionRaw ? JSON.parse(sessionRaw) : null;
 
@@ -51,8 +69,6 @@ export default function Chat() {
   let conversations: Conversation[] = [];
 
   if (session?.role === 'medico') {
-    // El chat existe con TODOS los pacientes que, al registrarse, eligieron a este médico
-    // como su médico asignado — sin importar si ya recibieron un análisis o no.
     const myPatients = users.filter((u) => u.role === 'paciente' && u.assignedDoctorEmail === session.email);
     conversations = myPatients.map((p) => ({
       id: `${session.email}__${p.email}`,
@@ -60,16 +76,16 @@ export default function Chat() {
       photoDataUrl: p.photoDataUrl,
     }));
   } else if (session?.role === 'paciente' && session.assignedDoctorEmail) {
-    // El paciente SOLO puede chatear con el médico que tiene asignado.
     const myDoctor = users.find((u) => u.email === session.assignedDoctorEmail);
     conversations = myDoctor
-      ? [{ id: `${myDoctor.email}__${session.email}`, name: myDoctor.name, photoDataUrl: myDoctor.photoDataUrl }]
+      ? [{
+          id: `${myDoctor.email}__${session.email}`,
+          name: myDoctor.name,
+          specialty: myDoctor.specialty,
+          photoDataUrl: myDoctor.photoDataUrl,
+        }]
       : [];
   }
-
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [draft, setDraft] = useState('');
 
   const selected = conversations.find((c) => c.id === selectedId) ?? null;
 
@@ -128,7 +144,10 @@ export default function Chat() {
               <>
                 <div className="chat-header">
                   <Avatar photoDataUrl={selected.photoDataUrl} />
-                  <span>{selected.name}</span>
+                  <span>
+                    {selected.name}
+                    {selected.specialty && <span className="chat-header-specialty"> — {selected.specialty}</span>}
+                  </span>
                 </div>
                 <div className="chat-messages">
                   {messages.length === 0 ? (

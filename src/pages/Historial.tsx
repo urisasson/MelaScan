@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 
@@ -31,6 +31,15 @@ const ALL_CRITERIA = ['A', 'B', 'C', 'D', 'E'];
 export default function Historial() {
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.path === '/historial') setSelectedId(null);
+    };
+    window.addEventListener('melascan-nav-reset', handler);
+    return () => window.removeEventListener('melascan-nav-reset', handler);
+  }, []);
 
   const raw = localStorage.getItem('melascan_historial');
   const all: AnalysisRecord[] = raw ? JSON.parse(raw) : [];

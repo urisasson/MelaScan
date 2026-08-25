@@ -46,7 +46,6 @@ export default function Sidebar() {
     if (!sessionEmail) return;
     const updatedUsers = users.map((u) => (u.email === sessionEmail ? { ...u, photoDataUrl } : u));
     localStorage.setItem('melascan_users', JSON.stringify(updatedUsers));
-    // Forzamos refresco de la pantalla para que se vea la foto nueva/quitada
     window.dispatchEvent(new Event('storage'));
     navigate(location.pathname, { replace: true });
   };
@@ -67,6 +66,15 @@ export default function Sidebar() {
     setMenuOpen(false);
   };
 
+  // Si tocás el link de la pantalla en la que ya estás (ej. Historial estando en /historial),
+  // React Router no cambia la URL y no pasa nada. Este evento avisa a esa pantalla
+  // que se resetee a la vista de lista, aunque ya esté montada.
+  const handleNavClick = (path: string) => {
+    if (location.pathname === path) {
+      window.dispatchEvent(new CustomEvent('melascan-nav-reset', { detail: { path } }));
+    }
+  };
+
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">Logo</div>
@@ -76,6 +84,7 @@ export default function Sidebar() {
           <Link
             key={item.path}
             to={item.path}
+            onClick={() => handleNavClick(item.path)}
             className={`sidebar-link${location.pathname === item.path ? ' active' : ''}`}
           >
             {item.label}
