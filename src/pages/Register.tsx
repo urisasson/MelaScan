@@ -20,13 +20,22 @@ interface Props {
 export default function Register({ initialRole = 'paciente', onClose, onSwitchToLogin }: Props) {
   const [role, setRole] = useState<'paciente' | 'medico'>(initialRole);
 
+  // Un juego de variables por cada campo y por cada rol, así cambiar de rol
+  // nunca mezcla lo que escribiste en el otro (pero si volvés al mismo, sigue ahí).
   const [nameMedico, setNameMedico] = useState('');
   const [namePaciente, setNamePaciente] = useState('');
   const name = role === 'medico' ? nameMedico : namePaciente;
   const setName = role === 'medico' ? setNameMedico : setNamePaciente;
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [emailMedico, setEmailMedico] = useState('');
+  const [emailPaciente, setEmailPaciente] = useState('');
+  const email = role === 'medico' ? emailMedico : emailPaciente;
+  const setEmail = role === 'medico' ? setEmailMedico : setEmailPaciente;
+
+  const [passwordMedico, setPasswordMedico] = useState('');
+  const [passwordPaciente, setPasswordPaciente] = useState('');
+  const password = role === 'medico' ? passwordMedico : passwordPaciente;
+  const setPassword = role === 'medico' ? setPasswordMedico : setPasswordPaciente;
 
   const [specialty, setSpecialty] = useState('');
 

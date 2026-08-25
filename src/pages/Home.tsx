@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
+import { Navigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 
 interface AnalysisRecord {
@@ -26,6 +27,7 @@ interface StoredUser {
 interface Session {
   name: string;
   email: string;
+  role: 'medico' | 'paciente';
 }
 
 const ABCDE_CRITERIA = [
@@ -37,6 +39,12 @@ const ABCDE_CRITERIA = [
 ];
 
 export default function Home() {
+  const guardSessionRaw = localStorage.getItem('melascan_session');
+  const guardSession: Session | null = guardSessionRaw ? JSON.parse(guardSessionRaw) : null;
+  if (!guardSession || guardSession.role !== 'medico') {
+    return <Navigate to="/" replace />;
+  }
+
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -47,23 +55,20 @@ export default function Home() {
   const [descriptionSaved, setDescriptionSaved] = useState(false);
   const [recordId, setRecordId] = useState<string | null>(null);
 
-  // Paciente elegido en el buscador (todavía no implica ni guardado ni envío)
   const [patientQuery, setPatientQuery] = useState('');
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<{ email: string; name: string } | null>(null);
 
   const [patientSaved, setPatientSaved] = useState(false);
   const [confirmingSend, setConfirmingSend] = useState(false);
-  const [locked, setLocked] = useState(false); // true solo después de confirmar el ENVÍO
+  const [locked, setLocked] = useState(false);
   const [sentTo, setSentTo] = useState<string | null>(null);
 
-  const sessionRaw = localStorage.getItem('melascan_session');
-  const session: Session | null = sessionRaw ? JSON.parse(sessionRaw) : null;
+  const session = guardSession;
 
   const usersRaw = localStorage.getItem('melascan_users');
   const users: StoredUser[] = usersRaw ? JSON.parse(usersRaw) : [];
 
-  // El médico puede elegir a CUALQUIER paciente registrado, sin importar si está asignado a él.
   const allPatients = users.filter((u) => u.role === 'paciente').sort((a, b) => a.name.localeCompare(b.name));
 
   const filteredPatients = allPatients.filter((p) => {
@@ -144,7 +149,6 @@ export default function Home() {
     setDescriptionSaved(true);
   };
 
-  // Solo guarda el nombre del paciente en el historial. NO lo envía.
   const handleSavePatient = () => {
     if (!recordId || !selectedPatient) return;
     const raw = localStorage.getItem('melascan_historial');
@@ -156,7 +160,6 @@ export default function Home() {
     setPatientSaved(true);
   };
 
-  // Envía de verdad el análisis al paciente (esto sí lo hace aparecer en Mis Análisis del paciente).
   const handleConfirmSend = () => {
     if (!recordId || !selectedPatient) return;
     const raw = localStorage.getItem('melascan_historial');

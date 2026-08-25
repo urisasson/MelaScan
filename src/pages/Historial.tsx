@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 
 interface AnalysisRecord {
@@ -17,6 +17,7 @@ interface AnalysisRecord {
 
 interface Session {
   email: string;
+  role: 'medico' | 'paciente';
 }
 
 const triageClass: Record<AnalysisRecord['triage'], string> = {
@@ -29,6 +30,12 @@ const triageClass: Record<AnalysisRecord['triage'], string> = {
 const ALL_CRITERIA = ['A', 'B', 'C', 'D', 'E'];
 
 export default function Historial() {
+  const guardSessionRaw = localStorage.getItem('melascan_session');
+  const guardSession: Session | null = guardSessionRaw ? JSON.parse(guardSessionRaw) : null;
+  if (!guardSession || guardSession.role !== 'medico') {
+    return <Navigate to="/" replace />;
+  }
+
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -44,10 +51,9 @@ export default function Historial() {
   const raw = localStorage.getItem('melascan_historial');
   const all: AnalysisRecord[] = raw ? JSON.parse(raw) : [];
 
-  const sessionRaw = localStorage.getItem('melascan_session');
-  const session: Session | null = sessionRaw ? JSON.parse(sessionRaw) : null;
+  const session = guardSession;
 
-  const myEntries = all.filter((r) => r.doctorEmail === session?.email);
+  const myEntries = all.filter((r) => r.doctorEmail === session.email);
   const entries = myEntries.filter((r) => (r.patientName ?? '').toLowerCase().includes(search.toLowerCase()));
   const selected = myEntries.find((e) => e.id === selectedId) ?? null;
 

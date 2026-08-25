@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
+import { Navigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 
 interface StoredUser {
@@ -44,6 +45,11 @@ function Avatar({ photoDataUrl }: { photoDataUrl?: string }) {
 }
 
 export default function Chat() {
+  const guardSessionRaw = localStorage.getItem('melascan_session');
+  if (!guardSessionRaw) {
+    return <Navigate to="/" replace />;
+  }
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
@@ -60,22 +66,21 @@ export default function Chat() {
     return () => window.removeEventListener('melascan-nav-reset', handler);
   }, []);
 
-  const sessionRaw = localStorage.getItem('melascan_session');
-  const session: Session | null = sessionRaw ? JSON.parse(sessionRaw) : null;
+  const session: Session = JSON.parse(guardSessionRaw);
 
   const usersRaw = localStorage.getItem('melascan_users');
   const users: StoredUser[] = usersRaw ? JSON.parse(usersRaw) : [];
 
   let conversations: Conversation[] = [];
 
-  if (session?.role === 'medico') {
+  if (session.role === 'medico') {
     const myPatients = users.filter((u) => u.role === 'paciente' && u.assignedDoctorEmail === session.email);
     conversations = myPatients.map((p) => ({
       id: `${session.email}__${p.email}`,
       name: p.name,
       photoDataUrl: p.photoDataUrl,
     }));
-  } else if (session?.role === 'paciente' && session.assignedDoctorEmail) {
+  } else if (session.role === 'paciente' && session.assignedDoctorEmail) {
     const myDoctor = users.find((u) => u.email === session.assignedDoctorEmail);
     conversations = myDoctor
       ? [{
@@ -97,7 +102,7 @@ export default function Chat() {
 
   const handleSend = (e: FormEvent) => {
     e.preventDefault();
-    if (!draft.trim() || !selected || !session) return;
+    if (!draft.trim() || !selected) return;
 
     const raw = localStorage.getItem('melascan_chat_' + selected.id);
     const current: ChatMessage[] = raw ? JSON.parse(raw) : [];
@@ -117,7 +122,7 @@ export default function Chat() {
           <div className="conversations-list">
             {conversations.length === 0 ? (
               <div className="empty-cell" style={{ padding: '24px 16px' }}>
-                {session?.role === 'medico'
+                {session.role === 'medico'
                   ? 'Todavía no tenés pacientes que te hayan asignado como médico.'
                   : 'Todavía no tenés un médico asignado.'}
               </div>
@@ -154,7 +159,7 @@ export default function Chat() {
                     <div className="empty-cell">Todavía no hay mensajes en esta conversación.</div>
                   ) : (
                     messages.map((m) => (
-                      <div className={`chat-bubble ${m.senderRole === session?.role ? 'me' : 'other'}`} key={m.id}>
+                      <div className={`chat-bubble ${m.senderRole === session.role ? 'me' : 'other'}`} key={m.id}>
                         {m.text}
                       </div>
                     ))

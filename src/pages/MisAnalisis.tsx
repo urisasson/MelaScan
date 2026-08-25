@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 
 interface AnalysisRecord {
@@ -15,6 +16,7 @@ interface AnalysisRecord {
 
 interface Session {
   email: string;
+  role: 'medico' | 'paciente';
 }
 
 const triageClass: Record<AnalysisRecord['triage'], string> = {
@@ -27,6 +29,12 @@ const triageClass: Record<AnalysisRecord['triage'], string> = {
 const ALL_CRITERIA = ['A', 'B', 'C', 'D', 'E'];
 
 export default function MisAnalisis() {
+  const guardSessionRaw = localStorage.getItem('melascan_session');
+  const guardSession: Session | null = guardSessionRaw ? JSON.parse(guardSessionRaw) : null;
+  if (!guardSession || guardSession.role !== 'paciente') {
+    return <Navigate to="/" replace />;
+  }
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -41,10 +49,9 @@ export default function MisAnalisis() {
   const raw = localStorage.getItem('melascan_historial');
   const all: AnalysisRecord[] = raw ? JSON.parse(raw) : [];
 
-  const sessionRaw = localStorage.getItem('melascan_session');
-  const session: Session | null = sessionRaw ? JSON.parse(sessionRaw) : null;
+  const session = guardSession;
 
-  const analyses = all.filter((r) => r.sentToPatient && r.patientEmail === session?.email);
+  const analyses = all.filter((r) => r.sentToPatient && r.patientEmail === session.email);
   const selected = analyses.find((a) => a.id === selectedId) ?? null;
 
   if (selected) {

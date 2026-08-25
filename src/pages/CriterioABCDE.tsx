@@ -1,3 +1,4 @@
+import { Navigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 
 const CRITERIA = [
@@ -9,6 +10,11 @@ const CRITERIA = [
 ];
 
 export default function CriterioABCDE() {
+  const guardSessionRaw = localStorage.getItem('melascan_session');
+  if (!guardSessionRaw) {
+    return <Navigate to="/" replace />;
+  }
+
   return (
     <div className="shell">
       <Sidebar />
