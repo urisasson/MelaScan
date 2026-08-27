@@ -101,7 +101,6 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
 
         <form onSubmit={handleSubmit}>
           <label className="field">
-            <span>Soy</span>
             <div className="role-toggle">
               <button type="button" className={role === 'paciente' ? 'active' : ''} onClick={() => setRole('paciente')}>
                 Como Paciente
@@ -133,7 +132,6 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
               <input
                 value={specialty}
                 onChange={(e) => setSpecialty(e.target.value)}
-                placeholder="Ej: Dermatología clínica"
                 required
               />
             </label>

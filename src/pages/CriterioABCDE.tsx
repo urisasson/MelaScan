@@ -1,12 +1,11 @@
 import { Navigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 
-const CRITERIA = [
+const SINGLE_IMAGE_CRITERIA = [
   { letter: 'A', title: 'Asimetría', text: 'Una mitad del lunar no coincide con la otra.', image: '/images/abcde/asimetria.jpg' },
   { letter: 'B', title: 'Borde', text: 'Bordes irregulares, desiguales o mal definidos.', image: '/images/abcde/borde.jpg' },
   { letter: 'C', title: 'Color', text: 'Distintos tonos de marrón, negro o rojo en un mismo lunar.', image: '/images/abcde/color.jpg' },
-  { letter: 'D', title: 'Diámetro', text: 'Mayor a 6mm, aproximadamente el tamaño de un borrador de lápiz.', image: '/images/abcde/diametro.jpg' },
-  { letter: 'E', title: 'Evolución', text: 'Cambios en tamaño, forma, color o síntomas con el tiempo.', image: '/images/abcde/evolucion.jpg' },
+  { letter: 'D', title: 'Diámetro', text: 'Mayor a 6mm, aproximadamente el tamaño de un borrador de lápiz.', image: '/images/abcde/diametro.avif' },
 ];
 
 export default function CriterioABCDE() {
@@ -24,7 +23,7 @@ export default function CriterioABCDE() {
           <p>Los siguientes 5 parámetros son utilizados por dermatólogos para identificar melanomas sospechosos:</p>
 
           <div className="abcde-grid">
-            {CRITERIA.map((c) => (
+            {SINGLE_IMAGE_CRITERIA.map((c) => (
               <div className="abcde-card" key={c.letter}>
                 <img src={c.image} alt={c.title} className="abcde-image" />
                 <span className="abcde-letter">{c.letter}</span>
@@ -32,6 +31,22 @@ export default function CriterioABCDE() {
                 <p>{c.text}</p>
               </div>
             ))}
+
+            <div className="abcde-card">
+              <div className="abcde-compare">
+                <div className="abcde-compare-item">
+                  <img src="/images/abcde/evolucion-antes.png" alt="Lunar - foto anterior" className="abcde-image" />
+                  <span className="abcde-compare-label">2012</span>
+                </div>
+                <div className="abcde-compare-item">
+                  <img src="/images/abcde/evolucion-despues.png" alt="Lunar - foto posterior" className="abcde-image" />
+                  <span className="abcde-compare-label">2017</span>
+                </div>
+              </div>
+              <span className="abcde-letter">E</span>
+              <h4>Evolución</h4>
+              <p>Cambios en tamaño, forma, color o síntomas con el tiempo.</p>
+            </div>
           </div>
         </div>
 

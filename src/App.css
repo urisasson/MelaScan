@@ -305,3 +305,18 @@ h1, h2, h3, h4 { font-family: 'Fraunces', serif; font-weight: 500; margin: 0; }
 .patient-actions-row { display: flex; gap: 10px; }
 
 .chat-header-specialty { font-size: 12.5px; color: var(--muted); font-weight: 400; }
+
+.abcde-compare { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.abcde-compare-item { position: relative; }
+.abcde-compare-item .abcde-image {
+  margin-bottom: 0;
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  object-fit: contain;
+  background: var(--paper);
+  border-radius: 8px;
+}
+.abcde-compare-label {
+  position: absolute; bottom: 6px; left: 6px; background: rgba(27, 59, 57, 0.75); color: #fff;
+  font-size: 10.5px; padding: 2px 7px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;
+}
