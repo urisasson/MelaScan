@@ -17,11 +17,37 @@ interface Props {
   onSwitchToLogin: () => void;
 }
 
+function PatientIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="12" cy="7.5" r="4" />
+      <path d="M12 13.5c-5 0-8.5 2.7-8.5 6.5 0 1.1.9 2 2 2h13c1.1 0 2-.9 2-2 0-3.8-3.5-6.5-8.5-6.5z" />
+    </svg>
+  );
+}
+
+function DoctorIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="12" cy="7.5" r="4" />
+      <path d="M12 13.5c-5 0-8.5 2.7-8.5 6.5 0 1.1.9 2 2 2h13c1.1 0 2-.9 2-2 0-3.8-3.5-6.5-8.5-6.5z" />
+      <path
+        d="M9 14.3c0 1.6 1.1 2.7 3 2.7s3-1.1 3-2.7"
+        fill="none"
+        stroke="white"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+      <circle cx="9" cy="14.3" r="1.1" fill="white" />
+      <circle cx="15" cy="14.3" r="1.1" fill="white" />
+      <circle cx="12" cy="18.7" r="1.5" fill="white" />
+    </svg>
+  );
+}
+
 export default function Register({ initialRole = 'paciente', onClose, onSwitchToLogin }: Props) {
   const [role, setRole] = useState<'paciente' | 'medico'>(initialRole);
 
-  // Un juego de variables por cada campo y por cada rol, así cambiar de rol
-  // nunca mezcla lo que escribiste en el otro (pero si volvés al mismo, sigue ahí).
   const [nameMedico, setNameMedico] = useState('');
   const [namePaciente, setNamePaciente] = useState('');
   const name = role === 'medico' ? nameMedico : namePaciente;
@@ -100,16 +126,16 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
         <h2>Registrarse</h2>
 
         <form onSubmit={handleSubmit}>
-          <label className="field">
-            <div className="role-toggle">
-              <button type="button" className={role === 'paciente' ? 'active' : ''} onClick={() => setRole('paciente')}>
-                Como Paciente
-              </button>
-              <button type="button" className={role === 'medico' ? 'active' : ''} onClick={() => setRole('medico')}>
-                Como Médico
-              </button>
-            </div>
-          </label>
+          <div className="role-toggle">
+            <button type="button" className={role === 'paciente' ? 'active' : ''} onClick={() => setRole('paciente')}>
+              <PatientIcon />
+              Paciente
+            </button>
+            <button type="button" className={role === 'medico' ? 'active' : ''} onClick={() => setRole('medico')}>
+              <DoctorIcon />
+              Médico
+            </button>
+          </div>
 
           <label className="field">
             <span>Nombre completo</span>
