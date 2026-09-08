@@ -66,6 +66,9 @@ h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-w
   width: 28px; height: 28px; border-radius: 50%; background: var(--accent);
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
+.logo-badge-img {
+  height: 44px; width: auto; object-fit: contain; flex-shrink: 0;
+}
 .nav-actions { display: flex; gap: 10px; }
 
 .btn-nav-login {
@@ -253,7 +256,8 @@ h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-w
   width: 220px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--line);
   display: flex; flex-direction: column; padding: 28px 20px; min-height: 100vh; position: sticky; top: 0;
 }
-.sidebar-logo { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600; margin-bottom: 36px; }
+.sidebar-logo { display: flex; align-items: center; margin-bottom: 36px; }
+.sidebar-logo-img { height: 40px; width: auto; object-fit: contain; flex-shrink: 0; }
 .sidebar-nav { display: flex; flex-direction: column; gap: 6px; flex: 1; }
 .sidebar-link { padding: 10px 12px; border-radius: 8px; font-size: 14px; color: var(--muted); text-decoration: none; }
 .sidebar-link:hover { background: var(--paper); color: var(--ink); }
@@ -451,4 +455,70 @@ h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-w
 .abcde-compare-label {
   position: absolute; bottom: 6px; left: 6px; background: rgba(27, 59, 57, 0.75); color: #fff;
   font-size: 10.5px; padding: 2px 7px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;
+}
+/* ==================== Sidebar con íconos ==================== */
+.sidebar-link { display: flex; align-items: center; gap: 10px; }
+.sidebar-link.active { color: var(--accent); background: var(--accent-tint); }
+.sidebar-user-text { display: flex; flex-direction: column; align-items: flex-start; overflow: hidden; }
+.sidebar-user-name { font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-user-subtitle { font-size: 11px; font-style: italic; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ==================== SCANNER v2 (rediseño) ==================== */
+.scanner-grid-v2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+.scan-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; }
+.scan-card-head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 18px; color: var(--accent); }
+.scan-card-head h3 { font-size: 15px; font-weight: 700; color: #14181A; margin-bottom: 4px; }
+.scan-card-head p { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+
+.dropzone-v2 {
+  border: 1.5px dashed var(--line); border-radius: 12px; min-height: 200px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  background: var(--paper); text-align: center; cursor: pointer; overflow: hidden; position: relative;
+}
+.dropzone-v2.drag { border-color: var(--accent); background: var(--accent-tint); }
+.dropzone-v2 img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.scan-analyze-btn { width: 100%; justify-content: center; margin-top: 14px; }
+
+.collapsible-toggle-v2 {
+  display: flex; align-items: center; gap: 8px; background: none; border: none;
+  font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer; padding: 16px 0 0; width: 100%; text-align: left;
+}
+.collapsible-chevron { margin-left: auto; font-size: 11px; color: var(--muted); }
+
+.result-status-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.result-badge-pill {
+  background: var(--paper); color: var(--muted); border: 1px solid var(--line);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.03em; padding: 5px 12px; border-radius: 20px;
+}
+.result-percentage { font-size: 12px; color: var(--muted); text-align: right; }
+.result-percentage strong { display: block; font-size: 18px; color: var(--ink); }
+
+.result-status-main {
+  display: flex; align-items: center; gap: 14px; background: var(--paper); border-radius: 12px;
+  padding: 16px; margin-bottom: 20px;
+}
+.result-status-icon {
+  width: 40px; height: 40px; border-radius: 50%; background: var(--surface); border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--muted); flex-shrink: 0;
+}
+.result-status-main h4 { font-size: 14px; font-weight: 700; color: #14181A; margin-bottom: 2px; }
+.result-status-main p { font-size: 12px; color: var(--muted); }
+
+.scan-section-title {
+  display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--ink);
+  margin: 18px 0 10px;
+}
+.scan-section-title svg { color: var(--accent); flex-shrink: 0; }
+
+.abcde-detail-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.abcde-detail-card { background: var(--paper); border-radius: 8px; padding: 10px 8px; text-align: center; }
+.abcde-detail-letter { display: block; font-size: 11px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+.abcde-detail-desc { display: block; font-size: 10.5px; color: var(--muted); }
+
+.actions-checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.actions-checklist li {
+  font-size: 13px; color: var(--muted); padding-left: 22px; position: relative;
+}
+.actions-checklist li::before {
+  content: '✓'; position: absolute; left: 0; top: 0; color: var(--sage); font-weight: 700; font-size: 12px;
 }

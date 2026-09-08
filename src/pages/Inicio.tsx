@@ -33,14 +33,7 @@ const FAQS = [
 ];
 
 function LogoMark() {
-  return (
-    <span className="logo-badge">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.4" strokeLinecap="round">
-        <circle cx="10.5" cy="10.5" r="6.5" />
-        <line x1="15.2" y1="15.2" x2="21" y2="21" />
-      </svg>
-    </span>
-  );
+  return <img src="/logo.png" alt="MelaScan" className="logo-badge-img" />;
 }
 
 export default function Inicio() {
@@ -59,9 +52,8 @@ export default function Inicio() {
     <div className="landing-page" onClick={() => setOpenDropdown(null)}>
       <header className="site-header">
         <nav className="site-nav">
-          <div className="nav-brand">
+        <div className="nav-brand">
             <LogoMark />
-            MelaScan
           </div>
 
           <div className="nav-actions">
@@ -181,9 +173,8 @@ export default function Inicio() {
       <footer className="site-footer">
         <div className="footer-inner">
           <div>
-            <div className="footer-brand">
+          <div className="footer-brand">
               <LogoMark />
-              MelaScan
             </div>
             <p className="footer-team">
               MelaScan • Uriel Sasson, Ivan Rajmilovich, Ezequiel Zwiebel, Franco Caruso.
