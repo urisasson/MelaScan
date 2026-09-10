@@ -322,31 +322,40 @@ h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-w
 .disclaimer { font-size: 12.5px; color: var(--muted); background: var(--surface); border-left: 2px solid var(--accent); border-radius: 8px; padding: 12px 14px; line-height: 1.6; }
 
 /* ==================== HISTORIAL / MIS ANÁLISIS ==================== */
-.historial-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; gap: 20px; }
-.historial-head h1 { font-size: 24px; margin-bottom: 8px; }
-.historial-head p { font-size: 14px; color: var(--muted); max-width: 520px; line-height: 1.6; }
+/* ==================== HISTORIAL / MIS ANÁLISIS ==================== */
+
+.historial-page-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px 24px; box-shadow: 0 1px 3px rgba(20, 24, 26, 0.04); margin-bottom: 28px; }
+.historial-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.historial-head h1 { font-size: 20px; font-weight: 700; color: #14181A; margin-bottom: 6px; }
+.historial-head p { font-size: 13px; color: var(--muted); max-width: 480px; line-height: 1.55; }
 
 .search-bar {
-  width: 100%; max-width: 340px; padding: 11px 14px; margin-bottom: 20px;
-  border: 1px solid var(--line); border-radius: 8px; font-size: 13.5px; font-family: inherit;
-  background: var(--surface);
+  display: flex; align-items: center; gap: 10px; width: 100%; max-width: 420px; margin: 0 auto 24px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px;
+  font-size: 13.5px; font-family: inherit; color: var(--ink);
 }
 
 .historial-table-wrap { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
 .historial-table { width: 100%; border-collapse: collapse; }
-.historial-table th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--paper); }
-.historial-table td { padding: 14px 16px; font-size: 13.5px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.historial-table th {
+  text-align: left; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--muted); padding: 13px 16px; border-bottom: 1px solid var(--line); background: var(--paper);
+}
+.historial-table td { padding: 13px 16px; font-size: 13px; color: var(--ink); border-bottom: 1px solid var(--line); vertical-align: middle; }
 .historial-table tr:last-child td { border-bottom: none; }
-.empty-cell { text-align: center; color: var(--muted); padding: 40px 16px; font-size: 14px; }
-.historial-thumb { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; background: var(--line); }
-.criteria-dots { display: flex; gap: 4px; }
-.criteria-dot { width: 22px; height: 22px; border-radius: 6px; background: var(--paper); border: 1px solid var(--line); color: var(--muted); font-size: 11px; display: flex; align-items: center; justify-content: center; }
-.criteria-dot.used { background: var(--accent); color: #fff; border-color: var(--accent); }
-.clickable-row { cursor: pointer; }
+.empty-cell { text-align: center; color: var(--muted); padding: 32px 16px; font-size: 13.5px; }
+.historial-thumb { width: 34px; height: 34px; border-radius: 8px; object-fit: cover; background: var(--line); }
+.clickable-row { cursor: pointer; transition: background 0.15s; }
 .clickable-row:hover { background: var(--paper); }
+
+.triage-pill { display: inline-block; background: var(--paper); color: var(--muted); border: 1px solid var(--line); font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+.criteria-dots { display: flex; gap: 5px; }
+.criteria-dot { width: 22px; height: 22px; border-radius: 6px; background: var(--paper); border: 1px solid var(--line); color: var(--muted); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.descripcion-cell { color: var(--muted); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .back-link { background: none; border: none; font-size: 14px; font-weight: 500; color: var(--ink); cursor: pointer; margin-bottom: 24px; padding: 0; display: flex; align-items: center; gap: 6px; }
 .back-link:hover { color: var(--accent); }
-.analysis-full-image { width: 100%; height: 100%; min-height: 380px; object-fit: cover; border-radius: 12px; }
+.analysis-full-image { width: 100%; border-radius: 10px; object-fit: cover; max-height: 260px; }
 
 /* ==================== CRITERIO ABCDE ==================== */
 .abcde-card-block { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 32px; margin-bottom: 24px; }
@@ -525,3 +534,12 @@ h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-w
 .actions-checklist li::before { content: '✓'; position: absolute; left: 0; top: 0; color: var(--sage); font-weight: 700; font-size: 12px; }
 
 .result-status-row { display: none; } /* clase vieja, ya no se usa */
+
+.password-field { position: relative; }
+.password-field input { width: 100%; padding-right: 40px; }
+.password-toggle {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; padding: 4px;
+}
+.password-toggle:hover { color: var(--ink); }

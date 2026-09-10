@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 
 interface AnalysisRecord {
@@ -20,14 +20,24 @@ interface Session {
   role: 'medico' | 'paciente';
 }
 
-const triageClass: Record<AnalysisRecord['triage'], string> = {
-  pendiente: 'risk-pending',
-  bajo: 'risk-low',
-  moderado: 'risk-mid',
-  alto: 'risk-high',
-};
+const ALL_CRITERIA: string[] = ['A', 'B', 'C', 'D', 'E'];
 
-const ALL_CRITERIA = ['A', 'B', 'C', 'D', 'E'];
+function IconPlus() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+function IconSearch() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
 
 export default function Historial() {
   const guardSessionRaw = localStorage.getItem('melascan_session');
@@ -66,56 +76,41 @@ export default function Historial() {
             ‹ Volver al Historial
           </button>
 
-          <div className="scanner-grid">
-            <div className="lesion-panel">
+          <div className="scanner-grid-v2">
+            <div className="scan-card">
               <img src={selected.imageDataUrl} alt="Lesión analizada" className="analysis-full-image" />
             </div>
 
-            <div className="result-panel">
-              <div className="result-top">
-                <span className={`risk-badge ${triageClass[selected.triage]}`}>
-                  <span className="dot" />
-                  {selected.triage === 'pendiente' ? '—' : `Riesgo ${selected.triage}`}
-                </span>
-                <span className="prob-value">
-                  Riesgo IA: {selected.riskPercentage !== null ? `${selected.riskPercentage}%` : '—'}
-                </span>
+            <div className="scan-card">
+              <div className="result-top-badge-row">
+                <span className="result-risk-pill">RIESGO —</span>
+                <span className="result-percentage">Riesgo IA<strong>—%</strong></span>
               </div>
 
-              <div className="result-block-section">
-                <h4>Paciente</h4>
-                <p style={{ fontSize: 13.5 }}>{selected.patientName ?? 'Sin paciente asignado'}</p>
+              <div className="scan-section-title">Paciente</div>
+              <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>{selected.patientName ?? '—'}</p>
+
+              <div className="scan-section-title">Clasificación a partir del criterio ABCDE</div>
+              <div className="abcde-detail-grid">
+                {ALL_CRITERIA.map((letter) => (
+                  <div className="abcde-detail-card" key={letter}>
+                    <span className="abcde-detail-letter">{letter}</span>
+                    <span className="abcde-detail-desc">—</span>
+                  </div>
+                ))}
               </div>
 
-              <div className="result-block-section">
-                <h4>Clasificación a partir del criterio ABCDE</h4>
-                <div className="abcde-mini-grid">
-                  {ALL_CRITERIA.map((c) => (
-                    <div
-                      className={`abcde-mini-card${selected.criteriaUsed.includes(c) ? ' used' : ''}`}
-                      key={c}
-                    >
-                      <span className="abcde-mini-letter">{c}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <div className="scan-section-title">Acciones recomendadas</div>
+              <ul className="actions-checklist">
+                <li>—</li>
+                <li>—</li>
+                <li>—</li>
+              </ul>
 
-              <div className="result-block-section">
-                <h4>Acciones recomendadas</h4>
-                <ol className="actions-list">
-                  <li>—</li>
-                  <li>—</li>
-                  <li>—</li>
-                </ol>
-              </div>
+              <div className="scan-section-title">Descripción</div>
+              <p style={{ fontSize: 13, color: 'var(--muted)' }}>{selected.description || '—'}</p>
 
-              <div className="result-block-section">
-                <h4>Descripción</h4>
-                <p style={{ fontSize: 13.5, color: 'var(--muted)' }}>{selected.description || 'Sin descripción cargada.'}</p>
-              </div>
-
-              <div className="disclaimer">
+              <div className="disclaimer" style={{ marginTop: 16 }}>
                 Este resultado es orientativo y no reemplaza el diagnóstico médico ni la biopsia.
               </div>
             </div>
@@ -129,26 +124,33 @@ export default function Historial() {
     <div className="shell">
       <Sidebar />
       <main className="shell-content">
-        <div className="historial-head">
-          <div>
-            <h1>Historial y seguimiento</h1>
-            <p>Acá podrás revisar el historial de tus análisis y hacer seguimiento para no perder el registro. Cliqueá una fila para ver el detalle completo.</p>
+        <div className="historial-page-card">
+          <div className="historial-head">
+            <div>
+              <h1>Historial y Seguimiento Temporal</h1>
+              <p>Revise sus análisis más recientes y busque el de cualquier paciente.</p>
+            </div>
+            <a href="/home" className="btn-primary">
+              <IconPlus /> Nuevo Escaneo
+            </a>
           </div>
-          <Link to="/home" className="btn-primary">+ Realizar otro escaneo</Link>
         </div>
 
-        <input
-          className="search-bar"
-          placeholder="Buscar por nombre de paciente…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        <label className="search-bar">
+          <IconSearch />
+          <input
+            style={{ flex: 1, border: 'none', outline: 'none', background: 'none', fontFamily: 'inherit', fontSize: 'inherit', color: 'inherit' }}
+            placeholder="Buscar por el nombre del paciente…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </label>
 
         <div className="historial-table-wrap">
           <table className="historial-table">
             <thead>
               <tr>
-                <th>Lesión y muestra</th>
+                <th>Lesión</th>
                 <th>Paciente</th>
                 <th>Fecha de escaneo</th>
                 <th>Resultado triage</th>
@@ -170,23 +172,16 @@ export default function Historial() {
                     <td><img src={entry.imageDataUrl} alt="Lesión" className="historial-thumb" /></td>
                     <td>{entry.patientName ?? '—'}</td>
                     <td>{entry.date}</td>
-                    <td>
-                      <span className={`risk-badge ${triageClass[entry.triage]}`}>
-                        <span className="dot" />
-                        {entry.triage === 'pendiente' ? '—' : entry.triage}
-                      </span>
-                    </td>
+                    <td><span className="triage-pill">— Riesgo</span></td>
                     <td>
                       <div className="criteria-dots">
-                        {ALL_CRITERIA.map((c) => (
-                          <span key={c} className={`criteria-dot${entry.criteriaUsed.includes(c) ? ' used' : ''}`}>
-                            {c}
-                          </span>
+                        {ALL_CRITERIA.map((letter) => (
+                          <span key={letter} className="criteria-dot">{letter}</span>
                         ))}
                       </div>
                     </td>
-                    <td>{entry.riskPercentage !== null ? `${entry.riskPercentage}%` : '—'}</td>
-                    <td>{entry.description || '—'}</td>
+                    <td>—</td>
+                    <td className="descripcion-cell">{entry.description || '—'}</td>
                   </tr>
                 ))
               )}
