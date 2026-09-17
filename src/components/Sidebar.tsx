@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { ChangeEvent } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
@@ -8,6 +8,12 @@ interface StoredUser {
   role: 'medico' | 'paciente';
   specialty?: string;
   photoDataUrl?: string;
+}
+
+interface Session {
+  email: string;
+  role: 'medico' | 'paciente';
+  assignedDoctorEmail?: string;
 }
 
 function IconScanner() {
@@ -63,9 +69,11 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [hasUnread, setHasUnread] = useState(false);
 
   const sessionRaw = localStorage.getItem('melascan_session');
-  const sessionEmail = sessionRaw ? (JSON.parse(sessionRaw) as StoredUser).email : null;
+  const session: Session | null = sessionRaw ? JSON.parse(sessionRaw) : null;
+  const sessionEmail = session?.email ?? null;
 
   const usersRaw = localStorage.getItem('melascan_users');
   const users: StoredUser[] = usersRaw ? JSON.parse(usersRaw) : [];
@@ -73,6 +81,35 @@ export default function Sidebar() {
 
   const items = currentUser?.role === 'medico' ? NAV_MEDICO : NAV_PACIENTE;
   const subtitle = currentUser?.role === 'medico' ? (currentUser.specialty || 'Médico') : 'Paciente';
+
+  useEffect(() => {
+    if (!currentUser || !session) return;
+
+    const checkUnread = () => {
+      let conversationIds: string[] = [];
+
+      if (session.role === 'medico') {
+        const myPatients = users.filter((u) => u.role === 'paciente');
+        conversationIds = myPatients.map((p) => `${session.email}__${p.email}`);
+      } else if (session.role === 'paciente' && session.assignedDoctorEmail) {
+        conversationIds = [`${session.assignedDoctorEmail}__${session.email}`];
+      }
+
+      const anyUnread = conversationIds.some((id) => {
+        const messagesRaw = localStorage.getItem('melascan_chat_' + id);
+        const messages = messagesRaw ? JSON.parse(messagesRaw) : [];
+        const lastReadRaw = localStorage.getItem(`melascan_chat_lastread_${id}_${session.email}`);
+        const lastReadCount = lastReadRaw ? parseInt(lastReadRaw, 10) : 0;
+        return messages.slice(lastReadCount).some((m: { senderRole: string }) => m.senderRole !== session.role);
+      });
+
+      setHasUnread(anyUnread);
+    };
+
+    checkUnread();
+    window.addEventListener('storage', checkUnread);
+    return () => window.removeEventListener('storage', checkUnread);
+  }, [currentUser, session, users, location.pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem('melascan_session');
@@ -123,7 +160,10 @@ export default function Sidebar() {
             onClick={() => handleNavClick(item.path)}
             className={`sidebar-link${location.pathname === item.path ? ' active' : ''}`}
           >
-            {item.icon}
+            <span className="sidebar-link-icon-wrap">
+              {item.icon}
+              {item.label === 'Chats' && hasUnread && <span className="sidebar-notif-dot" />}
+            </span>
             {item.label}
           </Link>
         ))}
