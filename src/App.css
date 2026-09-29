@@ -388,7 +388,7 @@ h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-w
 .mole-image { width: 100%; aspect-ratio: 2.6 / 1; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); background: var(--paper); display: block; }
 
 /* ==================== CHAT v2 (rediseño) ==================== */
-.chat-shell { display: grid; grid-template-columns: 380px 1fr; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; height: 640px; }
+.chat-shell { display: grid; grid-template-columns: 380px 1fr; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; height: calc(100vh - 80px); }
 
 .conversations-panel { border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 14px; gap: 10px; min-height: 0; }
 
@@ -590,4 +590,100 @@ h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-w
 .sidebar-notif-dot {
   position: absolute; top: -3px; right: -3px; width: 8px; height: 8px; border-radius: 50%;
   background: var(--red); border: 1.5px solid var(--surface);
+}
+
+/* ==================== Chat: menú de 3 puntitos ==================== */
+.chat-menu-wrap { margin-left: auto; position: relative; }
+.chat-menu-btn {
+  width: 32px; height: 32px; border-radius: 50%; border: none; background: none; color: var(--muted);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.chat-menu-btn:hover { background: var(--paper); color: var(--ink); }
+.chat-menu-overlay { position: fixed; inset: 0; z-index: 40; background: transparent; }
+.chat-menu {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 50; min-width: 150px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 6px;
+  display: flex; flex-direction: column; gap: 2px; box-shadow: 0 8px 20px rgba(27, 59, 57, 0.12);
+}
+.chat-menu button {
+  text-align: left; padding: 9px 12px; font-size: 13px; border: none; background: none;
+  border-radius: 6px; cursor: pointer; color: var(--ink); font-family: inherit;
+}
+.chat-menu button:hover { background: var(--paper); }
+.chat-menu button.danger { color: var(--red); }
+
+/* ==================== Register: médicos asignados (chips) ==================== */
+.chips-input-box {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 46px; padding: 7px 10px;
+  border: 1px solid var(--line); border-radius: 9px; background: var(--surface); cursor: text;
+}
+.chips-input-box:focus-within { border-color: var(--accent); }
+.field .chips-input-box input {
+  flex: 1; width: auto; min-width: 120px; border: none; outline: none; background: none;
+  border-radius: 0; padding: 6px 4px; font-size: 14px;
+}
+.doctor-chip {
+  display: inline-flex; align-items: center; gap: 7px; background: var(--surface);
+  border: 1.5px solid var(--accent); color: #0F7A6D; font-size: 12px; font-weight: 700;
+  padding: 4px 6px 4px 12px; border-radius: 20px;
+}
+.chip-remove {
+  width: 16px; height: 16px; padding: 0; border: none; border-radius: 50%; background: var(--paper);
+  color: var(--ink); font-size: 9px; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.chip-remove:hover { background: var(--red-tint); color: var(--red); }
+
+/* ==================== Editar médicos (paciente) ==================== */
+.edit-doctors-section { margin-bottom: 22px; }
+.edit-doctors-title { display: block; font-size: 13.5px; font-weight: 700; color: var(--ink); margin-bottom: 10px; }
+.assigned-doctors-list {
+  list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px;
+  max-height: 210px; overflow-y: auto;
+}
+.assigned-doctor-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+}
+.assigned-doctor-info { display: flex; flex-direction: column; min-width: 0; }
+.assigned-doctor-name { font-size: 13.5px; font-weight: 600; color: #14181A; }
+.assigned-doctor-specialty { font-size: 11.5px; color: var(--muted); }
+.trash-btn {
+  flex-shrink: 0; width: 32px; height: 32px; border-radius: 8px; border: none;
+  background: var(--red-tint); color: var(--red); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.trash-btn:hover { background: #F6D3CC; }
+
+/* ==================== Menú de perfil: divisor y rojos ==================== */
+.profile-menu-divider { height: 1px; background: var(--line); margin: 4px 6px; }
+.profile-menu .danger:hover { background: var(--red-tint); }
+
+/* ==================== Tres puntitos: íconos y hover rojo ==================== */
+.chat-menu button { display: flex; align-items: center; gap: 9px; }
+.chat-menu button svg { flex-shrink: 0; }
+.chat-menu button.danger:hover { background: var(--red-tint); }
+
+/* ==================== Editar médicos ==================== */
+.chips-box-static { cursor: default; min-height: 60px; }
+.btn-outline {
+  background: var(--surface); color: var(--accent); border: 1.5px solid var(--accent);
+  padding: 12px 22px; border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+}
+.btn-outline:hover { background: var(--paper); }
+
+/* Cartel "Tus cambios no serán guardados" (queda encima de la otra ventana) */
+.confirm-backdrop { z-index: 200; background: rgba(27, 59, 57, 0.35); }
+.confirm-card { max-width: 400px; text-align: center; }
+.confirm-card h3 { font-size: 18px; font-weight: 700; color: #14181A; margin-bottom: 10px; }
+.confirm-card p { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 22px; }
+.confirm-card p strong { color: var(--accent); }
+.confirm-actions { display: flex; gap: 12px; }
+.confirm-actions button { flex: 1; justify-content: center; }
+
+/* Aviso chiquito abajo "Cambios guardados" */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 300;
+  background: var(--ink); color: #fff; font-size: 13px; font-weight: 600;
+  padding: 10px 20px; border-radius: 20px; box-shadow: 0 8px 20px rgba(20, 24, 26, 0.2);
 }

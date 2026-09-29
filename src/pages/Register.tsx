@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -8,7 +8,7 @@ interface StoredUser {
   password: string;
   role: 'medico' | 'paciente';
   specialty?: string;
-  assignedDoctorEmail?: string;
+  assignedDoctorEmails?: string[];
 }
 
 interface Props {
@@ -80,9 +80,10 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
 
   const [specialty, setSpecialty] = useState('');
 
-  const [assignedDoctorEmail, setAssignedDoctorEmail] = useState('');
+  const [assignedDoctorEmails, setAssignedDoctorEmails] = useState<string[]>([]);
   const [doctorQuery, setDoctorQuery] = useState('');
   const [showDoctorDropdown, setShowDoctorDropdown] = useState(false);
+  const doctorInputRef = useRef<HTMLInputElement>(null);
 
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -96,7 +97,13 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
   const users: StoredUser[] = raw ? JSON.parse(raw) : [];
   const doctors = users.filter((u) => u.role === 'medico').sort((a, b) => a.name.localeCompare(b.name));
 
+  const chosenDoctors = assignedDoctorEmails
+    .map((doctorEmail) => doctors.find((d) => d.email === doctorEmail))
+    .filter((d): d is StoredUser => !!d);
+
+  // Solo se ofrecen los médicos que todavía no elegiste
   const filteredDoctors = doctors.filter((d) => {
+    if (assignedDoctorEmails.includes(d.email)) return false;
     const q = doctorQuery.trim().toLowerCase();
     if (!q) return true;
     return d.name.toLowerCase().split(' ').some((word) => word.startsWith(q));
@@ -114,8 +121,8 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
       return;
     }
 
-    if (role === 'paciente' && !assignedDoctorEmail) {
-      setError('Elegí un médico asignado de la lista.');
+    if (role === 'paciente' && assignedDoctorEmails.length === 0) {
+      setError('Elegí al menos un médico asignado de la lista.');
       return;
     }
 
@@ -125,7 +132,7 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
       password,
       role,
       specialty: role === 'medico' ? specialty : undefined,
-      assignedDoctorEmail: role === 'paciente' ? assignedDoctorEmail : undefined,
+      assignedDoctorEmails: role === 'paciente' ? assignedDoctorEmails : undefined,
     };
 
     localStorage.setItem('melascan_users', JSON.stringify([...users, newUser]));
@@ -187,19 +194,36 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
               />
             </label>
           ) : (
-            <label className="field">
-              <span>Médico asignado</span>
+            <div className="field">
+              <span>Médicos asignados</span>
               {doctors.length === 0 ? (
                 <p className="form-hint">Todavía no hay médicos registrados. Pedile a tu médico que se registre primero.</p>
               ) : (
                 <div className="searchable-select">
-                  <input
-                    value={doctorQuery}
-                    onChange={(e) => { setDoctorQuery(e.target.value); setAssignedDoctorEmail(''); }}
-                    onFocus={() => setShowDoctorDropdown(true)}
-                    onBlur={() => setTimeout(() => setShowDoctorDropdown(false), 150)}
-                    placeholder="Buscar médico por nombre…"
-                  />
+                  <div className="chips-input-box" onClick={() => doctorInputRef.current?.focus()}>
+                    {chosenDoctors.map((d) => (
+                      <span className="doctor-chip" key={d.email}>
+                        {d.name}
+                        <button
+                          type="button"
+                          className="chip-remove"
+                          aria-label={`Quitar a ${d.name}`}
+                          onClick={() => setAssignedDoctorEmails((prev) => prev.filter((x) => x !== d.email))}
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                    <input
+                      ref={doctorInputRef}
+                      value={doctorQuery}
+                      onChange={(e) => setDoctorQuery(e.target.value)}
+                      onFocus={() => setShowDoctorDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowDoctorDropdown(false), 150)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+                      placeholder={chosenDoctors.length === 0 ? 'Buscar médico por nombre…' : ''}
+                    />
+                  </div>
                   {showDoctorDropdown && (
                     <div className="searchable-dropdown">
                       {filteredDoctors.length === 0 ? (
@@ -209,10 +233,10 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
                           <button
                             key={d.email}
                             type="button"
-                            onMouseDown={() => {
-                              setAssignedDoctorEmail(d.email);
-                              setDoctorQuery(d.name);
-                              setShowDoctorDropdown(false);
+                            onMouseDown={(ev) => {
+                              ev.preventDefault();
+                              setAssignedDoctorEmails((prev) => [...prev, d.email]);
+                              setDoctorQuery('');
                             }}
                           >
                             {d.name}
@@ -223,7 +247,7 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
                   )}
                 </div>
               )}
-            </label>
+            </div>
           )}
 
           {error && <p className="form-error">{error}</p>}

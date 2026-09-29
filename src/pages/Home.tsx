@@ -21,6 +21,8 @@ interface StoredUser {
   name: string;
   email: string;
   role: 'medico' | 'paciente';
+  assignedDoctorEmail?: string;
+  assignedDoctorEmails?: string[];
 }
 
 interface Session {
@@ -234,7 +236,8 @@ export default function Home() {
   };
 
   const handleConfirmSend = () => {
-    if (!recordId || !selectedPatient) return;
+    if (!recordId || !selectedPatient || !session) return;
+
     const raw = localStorage.getItem('melascan_historial');
     const historial: AnalysisRecord[] = raw ? JSON.parse(raw) : [];
     const updated = historial.map((r) =>
@@ -243,6 +246,19 @@ export default function Home() {
         : r
     );
     localStorage.setItem('melascan_historial', JSON.stringify(updated));
+
+    // Al enviar el análisis, el paciente queda asignado a este médico y le aparece el chat
+    const usersNowRaw = localStorage.getItem('melascan_users');
+    const allUsers: StoredUser[] = usersNowRaw ? JSON.parse(usersNowRaw) : [];
+    const updatedUsers = allUsers.map((u) => {
+      if (u.email !== selectedPatient.email) return u;
+      const assigned = u.assignedDoctorEmails ?? (u.assignedDoctorEmail ? [u.assignedDoctorEmail] : []);
+      return assigned.includes(session.email) ? u : { ...u, assignedDoctorEmails: [...assigned, session.email] };
+    });
+    localStorage.setItem('melascan_users', JSON.stringify(updatedUsers));
+    localStorage.removeItem(`melascan_hidden_${session.email}__${selectedPatient.email}_${selectedPatient.email}`);
+    window.dispatchEvent(new Event('storage'));
+
     setLocked(true);
     setConfirmingSend(false);
     setSentTo(selectedPatient.name);
@@ -259,7 +275,8 @@ export default function Home() {
               <h3>Análisis Fotográfico</h3>
             </div>
 
-            <label htmlFor="fileInput" style={{ display: 'block', height: 200 }}>              <div
+            <label htmlFor="fileInput" style={{ display: 'block', height: 200 }}>
+              <div
                 className={`dropzone-v2${dragging ? ' drag' : ''}`}
                 onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
                 onDragLeave={() => setDragging(false)}
@@ -314,7 +331,7 @@ export default function Home() {
               </div>
             ) : (
               <>
-                                <div className="result-top-badge-row">
+                <div className="result-top-badge-row">
                   <span className="result-risk-pill">RIESGO —</span>
                   <span className="result-percentage">Riesgo IA<strong>—%</strong></span>
                 </div>
@@ -356,7 +373,7 @@ export default function Home() {
                 </div>
                 {descriptionSaved && <span className="sent-confirm">Guardado en el historial ✓</span>}
 
-                <div className="scan-section-title"><IconSend /> Enviar análisis a tu paciente</div>
+                <div className="scan-section-title"><IconSend /> Enviar análisis al paciente</div>
 
                 {allPatients.length === 0 ? (
                   <p className="form-hint">Todavía no hay pacientes registrados en el sistema.</p>
@@ -377,7 +394,7 @@ export default function Home() {
                       onChange={(e) => setPatientQuery(e.target.value)}
                       onFocus={() => setShowPatientDropdown(true)}
                       onBlur={() => setTimeout(() => setShowPatientDropdown(false), 150)}
-                      placeholder="Escriba el nombre de su paciente"
+                      placeholder="Escriba el nombre del paciente"
                     />
                     {showPatientDropdown && (
                       <div className="searchable-dropdown">

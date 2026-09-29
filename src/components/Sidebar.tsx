@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { ChangeEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 interface StoredUser {
@@ -8,12 +9,44 @@ interface StoredUser {
   role: 'medico' | 'paciente';
   specialty?: string;
   photoDataUrl?: string;
+  assignedDoctorEmail?: string;
+  assignedDoctorEmails?: string[];
 }
 
-interface Session {
-  email: string;
-  role: 'medico' | 'paciente';
-  assignedDoctorEmail?: string;
+// Soporta cuentas viejas (un solo médico) y nuevas (varios médicos)
+function getAssignedDoctors(u: StoredUser): string[] {
+  if (u.assignedDoctorEmails) return u.assignedDoctorEmails;
+  return u.assignedDoctorEmail ? [u.assignedDoctorEmail] : [];
+}
+
+// ¿Hay algún chat visible con mensajes sin leer?
+function hasUnreadChats(me: StoredUser): boolean {
+  const prefix = 'melascan_chat_';
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key || !key.startsWith(prefix) || key.startsWith(prefix + 'lastread_')) continue;
+
+    const id = key.slice(prefix.length);
+    const sep = id.indexOf('__');
+    if (sep === -1) continue;
+    const doctorEmail = id.slice(0, sep);
+    const patientEmail = id.slice(sep + 2);
+    const isMine = me.role === 'medico' ? doctorEmail === me.email : patientEmail === me.email;
+    if (!isMine) continue;
+    if (localStorage.getItem(`melascan_hidden_${id}_${me.email}`) === '1') continue;
+
+    const messages: { senderRole: string; timestamp?: number }[] = JSON.parse(localStorage.getItem(key) ?? '[]');
+    const clearedRaw = localStorage.getItem(`melascan_cleared_${id}_${me.email}`);
+    const clearedAt = clearedRaw ? parseInt(clearedRaw, 10) : 0;
+    const lastReadRaw = localStorage.getItem(`${prefix}lastread_${id}_${me.email}`);
+    const lastReadCount = lastReadRaw ? parseInt(lastReadRaw, 10) : 0;
+
+    const unread = messages
+      .slice(lastReadCount)
+      .filter((m) => m.senderRole !== me.role && (!clearedAt || (m.timestamp ?? 0) > clearedAt)).length;
+    if (unread > 0) return true;
+  }
+  return false;
 }
 
 function IconScanner() {
@@ -64,16 +97,179 @@ const NAV_PACIENTE = [
   { label: 'Chats', path: '/chats', icon: <IconChat /> },
 ];
 
+// Ventana "Editar médicos" (solo pacientes). Los cambios se aplican recién al tocar "Guardar".
+function EditDoctorsModal({
+  patientEmail,
+  onClose,
+  onSaved,
+}: {
+  patientEmail: string;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const usersRaw = localStorage.getItem('melascan_users');
+  const users: StoredUser[] = usersRaw ? JSON.parse(usersRaw) : [];
+  const me = users.find((u) => u.email === patientEmail);
+  const initialEmails = me ? getAssignedDoctors(me) : [];
+
+  const [draftEmails, setDraftEmails] = useState<string[]>(initialEmails);
+  const [query, setQuery] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [confirmExit, setConfirmExit] = useState(false);
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  if (!me) return null;
+
+  const doctors = users.filter((u) => u.role === 'medico');
+  const chosenDoctors = draftEmails
+    .map((email) => doctors.find((d) => d.email === email))
+    .filter((d): d is StoredUser => !!d);
+
+  // No se ofrecen los médicos que ya están en la lista
+  const availableDoctors = doctors
+    .filter((d) => !draftEmails.includes(d.email))
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .filter((d) => {
+      const q = query.trim().toLowerCase();
+      if (!q) return true;
+      return d.name.toLowerCase().split(' ').some((word) => word.startsWith(q));
+    });
+
+  const hasChanges =
+    draftEmails.length !== initialEmails.length || draftEmails.some((e) => !initialEmails.includes(e));
+
+  const handleSave = () => {
+    const removed = initialEmails.filter((e) => !draftEmails.includes(e));
+    const added = draftEmails.filter((e) => !initialEmails.includes(e));
+
+    // Médico quitado: se oculta el chat (si él te vuelve a escribir, reaparece)
+    removed.forEach((d) => localStorage.setItem(`melascan_hidden_${d}__${patientEmail}_${patientEmail}`, '1'));
+    // Médico agregado: el chat vuelve a estar visible
+    added.forEach((d) => localStorage.removeItem(`melascan_hidden_${d}__${patientEmail}_${patientEmail}`));
+
+    const updated = users.map((u) => (u.email === patientEmail ? { ...u, assignedDoctorEmails: draftEmails } : u));
+    localStorage.setItem('melascan_users', JSON.stringify(updated));
+    window.dispatchEvent(new Event('storage'));
+    onSaved();
+  };
+
+  const handleCloseClick = () => {
+    if (hasChanges) setConfirmExit(true);
+    else onClose();
+  };
+
+  return createPortal(
+    <>
+      <div className="modal-backdrop">
+        <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+          <button className="modal-close" onClick={handleCloseClick} aria-label="Cerrar">✕</button>
+          <h2>Edita tus médicos asignados</h2>
+
+          <div className="field">
+            <span>Médicos asignados</span>
+            <div className="chips-input-box chips-box-static">
+              {chosenDoctors.length === 0 ? (
+                <span className="form-hint">No tenés médicos asignados.</span>
+              ) : (
+                chosenDoctors.map((d) => (
+                  <span className="doctor-chip" key={d.email}>
+                    {d.name}
+                    <button
+                      type="button"
+                      className="chip-remove"
+                      aria-label={`Quitar a ${d.name}`}
+                      onClick={() => setDraftEmails((prev) => prev.filter((x) => x !== d.email))}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="field">
+            <span>Agregar médico</span>
+            <div className="searchable-select">
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onFocus={() => setShowDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+                placeholder="Buscar por nombre para agregar a un médico"
+              />
+              {showDropdown && (
+                <div className="searchable-dropdown">
+                  {availableDoctors.length === 0 ? (
+                    <div className="searchable-empty">Sin resultados</div>
+                  ) : (
+                    availableDoctors.map((d) => (
+                      <button
+                        key={d.email}
+                        type="button"
+                        onMouseDown={(ev) => {
+                          ev.preventDefault();
+                          setDraftEmails((prev) => [...prev, d.email]);
+                          setQuery('');
+                        }}
+                      >
+                        {d.name}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <button type="button" className="btn-primary auth-submit" onClick={handleSave}>
+            Guardar
+          </button>
+        </div>
+      </div>
+
+      {confirmExit && (
+        <div className="modal-backdrop confirm-backdrop">
+          <div className="modal-card confirm-card" onClick={(e) => e.stopPropagation()}>
+            <h3>Tus cambios no serán guardados</h3>
+            <p>
+              Si deseas guardar tus cambios, toca <strong>"cancelar"</strong>.<br />
+              Si deseas continuar sin guardarlos, toca <strong>"continuar"</strong>.
+            </p>
+            <div className="confirm-actions">
+              <button type="button" className="btn-outline" onClick={() => setConfirmExit(false)}>Cancelar</button>
+              <button type="button" className="btn-primary" onClick={onClose}>Continuar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>,
+    document.body
+  );
+}
+
 export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [hasUnread, setHasUnread] = useState(false);
+  const [editDoctorsOpen, setEditDoctorsOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const [, setTick] = useState(0);
+
+  // Si cambia algo guardado (mensaje nuevo, chat leído, etc.) se vuelve a calcular el puntito
+  useEffect(() => {
+    const handler = () => setTick((n) => n + 1);
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }, []);
 
   const sessionRaw = localStorage.getItem('melascan_session');
-  const session: Session | null = sessionRaw ? JSON.parse(sessionRaw) : null;
-  const sessionEmail = session?.email ?? null;
+  const sessionEmail: string | null = sessionRaw ? (JSON.parse(sessionRaw) as { email: string }).email : null;
 
   const usersRaw = localStorage.getItem('melascan_users');
   const users: StoredUser[] = usersRaw ? JSON.parse(usersRaw) : [];
@@ -81,35 +277,15 @@ export default function Sidebar() {
 
   const items = currentUser?.role === 'medico' ? NAV_MEDICO : NAV_PACIENTE;
   const subtitle = currentUser?.role === 'medico' ? (currentUser.specialty || 'Médico') : 'Paciente';
+  const hasUnread = currentUser ? hasUnreadChats(currentUser) : false;
 
-  useEffect(() => {
-    if (!currentUser || !session) return;
+  // Pantalla principal según el rol: el logo lleva ahí
+  const homePath = currentUser?.role === 'medico' ? '/home' : '/mis-analisis';
 
-    const checkUnread = () => {
-      let conversationIds: string[] = [];
-
-      if (session.role === 'medico') {
-        const myPatients = users.filter((u) => u.role === 'paciente');
-        conversationIds = myPatients.map((p) => `${session.email}__${p.email}`);
-      } else if (session.role === 'paciente' && session.assignedDoctorEmail) {
-        conversationIds = [`${session.assignedDoctorEmail}__${session.email}`];
-      }
-
-      const anyUnread = conversationIds.some((id) => {
-        const messagesRaw = localStorage.getItem('melascan_chat_' + id);
-        const messages = messagesRaw ? JSON.parse(messagesRaw) : [];
-        const lastReadRaw = localStorage.getItem(`melascan_chat_lastread_${id}_${session.email}`);
-        const lastReadCount = lastReadRaw ? parseInt(lastReadRaw, 10) : 0;
-        return messages.slice(lastReadCount).some((m: { senderRole: string }) => m.senderRole !== session.role);
-      });
-
-      setHasUnread(anyUnread);
-    };
-
-    checkUnread();
-    window.addEventListener('storage', checkUnread);
-    return () => window.removeEventListener('storage', checkUnread);
-  }, [currentUser, session, users, location.pathname]);
+  const showToast = (text: string) => {
+    setToast(text);
+    setTimeout(() => setToast(null), 2500);
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('melascan_session');
@@ -148,9 +324,13 @@ export default function Sidebar() {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-logo">
+      <Link
+        to={homePath}
+        className="sidebar-logo"
+        onClick={(e) => { if (location.pathname === homePath) e.preventDefault(); }}
+      >
         <img src="/logo.png" alt="MelaScan" className="sidebar-logo-img" />
-      </div>
+      </Link>
 
       <nav className="sidebar-nav">
         {items.map((item) => (
@@ -191,6 +371,9 @@ export default function Sidebar() {
           <>
             <div className="profile-menu-overlay" onClick={() => setMenuOpen(false)} />
             <div className="profile-menu">
+              {currentUser?.photoDataUrl && (
+                <button type="button" className="danger" onClick={handleRemovePhoto}>Eliminar foto</button>
+              )}
               <label>
                 Cambiar foto
                 <input
@@ -201,14 +384,27 @@ export default function Sidebar() {
                   style={{ display: 'none' }}
                 />
               </label>
-              {currentUser?.photoDataUrl && (
-                <button type="button" onClick={handleRemovePhoto}>Quitar foto</button>
+              {currentUser?.role === 'paciente' && (
+                <button type="button" onClick={() => { setMenuOpen(false); setEditDoctorsOpen(true); }}>
+                  Editar médicos
+                </button>
               )}
+              <div className="profile-menu-divider" />
               <button type="button" className="danger" onClick={handleLogout}>Cerrar sesión</button>
             </div>
           </>
         )}
       </div>
+
+      {editDoctorsOpen && currentUser && (
+        <EditDoctorsModal
+          patientEmail={currentUser.email}
+          onClose={() => setEditDoctorsOpen(false)}
+          onSaved={() => { setEditDoctorsOpen(false); showToast('Cambios guardados'); }}
+        />
+      )}
+
+      {toast && createPortal(<div className="toast">{toast}</div>, document.body)}
     </aside>
   );
 }
