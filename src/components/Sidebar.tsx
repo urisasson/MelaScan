@@ -200,7 +200,7 @@ function EditDoctorsModal({
                 onChange={(e) => setQuery(e.target.value)}
                 onFocus={() => setShowDropdown(true)}
                 onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
-                placeholder="Buscar por nombre para agregar a un médico"
+                placeholder="Buscar por el nombre del médico"
               />
               {showDropdown && (
                 <div className="searchable-dropdown">
@@ -226,7 +226,7 @@ function EditDoctorsModal({
             </div>
           </div>
 
-          <button type="button" className="btn-primary auth-submit" onClick={handleSave}>
+          <button type="button" className="btn-primary auth-submit" onClick={handleSave} disabled={!hasChanges}>
             Guardar
           </button>
         </div>

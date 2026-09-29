@@ -19,14 +19,16 @@ interface Session {
   role: 'medico' | 'paciente';
 }
 
-const triageClass: Record<AnalysisRecord['triage'], string> = {
-  pendiente: 'risk-pending',
-  bajo: 'risk-low',
-  moderado: 'risk-mid',
-  alto: 'risk-high',
-};
+const ALL_CRITERIA: string[] = ['A', 'B', 'C', 'D', 'E'];
 
-const ALL_CRITERIA = ['A', 'B', 'C', 'D', 'E'];
+function IconSearch() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
 
 export default function MisAnalisis() {
   const guardSessionRaw = localStorage.getItem('melascan_session');
@@ -35,6 +37,7 @@ export default function MisAnalisis() {
     return <Navigate to="/" replace />;
   }
 
+  const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -51,8 +54,9 @@ export default function MisAnalisis() {
 
   const session = guardSession;
 
-  const analyses = all.filter((r) => r.sentToPatient && r.patientEmail === session.email);
-  const selected = analyses.find((a) => a.id === selectedId) ?? null;
+  const myAnalyses = all.filter((r) => r.sentToPatient && r.patientEmail === session.email);
+  const entries = myAnalyses.filter((r) => (r.doctorName ?? '').toLowerCase().includes(search.toLowerCase()));
+  const selected = myAnalyses.find((a) => a.id === selectedId) ?? null;
 
   if (selected) {
     return (
@@ -63,51 +67,38 @@ export default function MisAnalisis() {
             ‹ Volver a Mis Análisis
           </button>
 
-          <div className="scanner-grid">
-            <div className="lesion-panel">
+          <div className="scanner-grid-v2">
+            <div className="scan-card">
               <img src={selected.imageDataUrl} alt="Lesión analizada" className="analysis-full-image" />
             </div>
 
-            <div className="result-panel">
-              <div className="result-top">
-                <span className={`risk-badge ${triageClass[selected.triage]}`}>
-                  <span className="dot" />
-                  {selected.triage === 'pendiente' ? '—' : `Riesgo ${selected.triage}`}
-                </span>
-                <span className="prob-value">
-                  Riesgo IA: {selected.riskPercentage !== null ? `${selected.riskPercentage}%` : '—'}
-                </span>
+            <div className="scan-card">
+              <div className="result-top-badge-row">
+                <span className="result-risk-pill">RIESGO —</span>
+                <span className="result-percentage">Riesgo IA<strong>—%</strong></span>
               </div>
 
-              <div className="result-block-section">
-                <h4>Especialista</h4>
-                <p style={{ fontSize: 13.5 }}>{selected.doctorName ?? 'Sin datos'}</p>
+              <div className="scan-section-title">Especialista</div>
+              <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>{selected.doctorName ?? '—'}</p>
+
+              <div className="scan-section-title">Clasificación a partir del criterio ABCDE</div>
+              <div className="abcde-detail-grid">
+                {ALL_CRITERIA.map((letter) => (
+                  <div className="abcde-detail-card" key={letter}>
+                    <span className="abcde-detail-letter">{letter}</span>
+                    <span className="abcde-detail-desc">—</span>
+                  </div>
+                ))}
               </div>
 
-              <div className="result-block-section">
-                <h4>Clasificación a partir del criterio ABCDE</h4>
-                <div className="abcde-mini-grid">
-                  {ALL_CRITERIA.map((c) => (
-                    <div
-                      className={`abcde-mini-card${selected.criteriaUsed.includes(c) ? ' used' : ''}`}
-                      key={c}
-                    >
-                      <span className="abcde-mini-letter">{c}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <div className="scan-section-title">Acciones recomendadas</div>
+              <ul className="actions-checklist">
+                <li>—</li>
+                <li>—</li>
+                <li>—</li>
+              </ul>
 
-              <div className="result-block-section">
-                <h4>Acciones recomendadas</h4>
-                <ol className="actions-list">
-                  <li>—</li>
-                  <li>—</li>
-                  <li>—</li>
-                </ol>
-              </div>
-
-              <div className="disclaimer">
+              <div className="disclaimer" style={{ marginTop: 16 }}>
                 Este resultado es orientativo y no reemplaza el diagnóstico médico ni la biopsia.
                 Ante cualquier duda, consultá con tu médico.
               </div>
@@ -122,52 +113,61 @@ export default function MisAnalisis() {
     <div className="shell">
       <Sidebar />
       <main className="shell-content">
-        <div className="historial-head">
-          <div>
-            <h1>Mis Análisis</h1>
-            <p>Acá podrás revisar los análisis que tu médico te envió. Para ver más detalles, cliqueálo.</p>
+        <div className="historial-page-card">
+          <div className="historial-head">
+            <div>
+              <h1>Mis Análisis</h1>
+              <p style={{ maxWidth: 'none' }}>Revisá los análisis que te enviaron tus médicos. Tocá uno para ver el detalle completo.</p>
+            </div>
           </div>
         </div>
+
+        <label className="search-bar">
+          <IconSearch />
+          <input
+            style={{ flex: 1, border: 'none', outline: 'none', background: 'none', fontFamily: 'inherit', fontSize: 'inherit', color: 'inherit' }}
+            placeholder="Buscar por el nombre del médico…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </label>
 
         <div className="historial-table-wrap">
           <table className="historial-table">
             <thead>
               <tr>
-                <th>Lesión y muestra</th>
+                <th>Lesión</th>
+                <th>Especialista</th>
                 <th>Fecha de escaneo</th>
                 <th>Resultado triage</th>
                 <th>Criterio ABCDE</th>
                 <th>Riesgo IA</th>
-                <th>Especialista</th>
               </tr>
             </thead>
             <tbody>
-              {analyses.length === 0 ? (
+              {entries.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="empty-cell">Tu médico todavía no te envió ningún análisis.</td>
+                  <td colSpan={6} className="empty-cell">
+                    {myAnalyses.length === 0
+                      ? 'Todavía no te enviaron ningún análisis.'
+                      : 'No se encontraron análisis de ese médico.'}
+                  </td>
                 </tr>
               ) : (
-                analyses.map((entry) => (
+                entries.map((entry) => (
                   <tr key={entry.id} className="clickable-row" onClick={() => setSelectedId(entry.id)}>
                     <td><img src={entry.imageDataUrl} alt="Lesión" className="historial-thumb" /></td>
+                    <td>{entry.doctorName ?? '—'}</td>
                     <td>{entry.date}</td>
-                    <td>
-                      <span className={`risk-badge ${triageClass[entry.triage]}`}>
-                        <span className="dot" />
-                        {entry.triage === 'pendiente' ? '—' : entry.triage}
-                      </span>
-                    </td>
+                    <td><span className="triage-pill">— Riesgo</span></td>
                     <td>
                       <div className="criteria-dots">
-                        {ALL_CRITERIA.map((c) => (
-                          <span key={c} className={`criteria-dot${entry.criteriaUsed.includes(c) ? ' used' : ''}`}>
-                            {c}
-                          </span>
+                        {ALL_CRITERIA.map((letter) => (
+                          <span key={letter} className="criteria-dot">{letter}</span>
                         ))}
                       </div>
                     </td>
-                    <td>{entry.riskPercentage !== null ? `${entry.riskPercentage}%` : '—'}</td>
-                    <td>{entry.doctorName ?? 'Tu médico'}</td>
+                    <td>—</td>
                   </tr>
                 ))
               )}

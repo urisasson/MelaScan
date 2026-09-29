@@ -687,3 +687,8 @@ h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-w
   background: var(--ink); color: #fff; font-size: 13px; font-weight: 600;
   padding: 10px 20px; border-radius: 20px; box-shadow: 0 8px 20px rgba(20, 24, 26, 0.2);
 }
+
+/* Menú lateral fijo: no se estira con la página, el perfil queda siempre visible */
+@media (min-width: 981px) {
+  .sidebar { height: 100vh; align-self: flex-start; overflow-y: auto; }
+}

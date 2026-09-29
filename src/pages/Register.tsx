@@ -84,6 +84,7 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
   const [doctorQuery, setDoctorQuery] = useState('');
   const [showDoctorDropdown, setShowDoctorDropdown] = useState(false);
   const doctorInputRef = useRef<HTMLInputElement>(null);
+  const blurTimeoutRef = useRef<number | null>(null);
 
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -108,6 +109,18 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
     if (!q) return true;
     return d.name.toLowerCase().split(' ').some((word) => word.startsWith(q));
   });
+
+  const openDropdown = () => {
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = null;
+    }
+    setShowDoctorDropdown(true);
+  };
+
+  const closeDropdownSoon = () => {
+    blurTimeoutRef.current = window.setTimeout(() => setShowDoctorDropdown(false), 150);
+  };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -208,7 +221,11 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
                           type="button"
                           className="chip-remove"
                           aria-label={`Quitar a ${d.name}`}
-                          onClick={() => setAssignedDoctorEmails((prev) => prev.filter((x) => x !== d.email))}
+                          onMouseDown={(ev) => ev.preventDefault()}
+                          onClick={(ev) => {
+                            ev.stopPropagation();
+                            setAssignedDoctorEmails((prev) => prev.filter((x) => x !== d.email));
+                          }}
                         >
                           ✕
                         </button>
@@ -217,9 +234,9 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
                     <input
                       ref={doctorInputRef}
                       value={doctorQuery}
-                      onChange={(e) => setDoctorQuery(e.target.value)}
-                      onFocus={() => setShowDoctorDropdown(true)}
-                      onBlur={() => setTimeout(() => setShowDoctorDropdown(false), 150)}
+                      onChange={(e) => { setDoctorQuery(e.target.value); openDropdown(); }}
+                      onFocus={openDropdown}
+                      onBlur={closeDropdownSoon}
                       onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
                       placeholder={chosenDoctors.length === 0 ? 'Buscar médico por nombre…' : ''}
                     />
