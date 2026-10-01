@@ -147,7 +147,15 @@ function EditDoctorsModal({
     const added = draftEmails.filter((e) => !initialEmails.includes(e));
 
     // Médico quitado: se oculta el chat (si él te vuelve a escribir, reaparece)
-    removed.forEach((d) => localStorage.setItem(`melascan_hidden_${d}__${patientEmail}_${patientEmail}`, '1'));
+    removed.forEach((d) => {
+      const chatId = `${d}__${patientEmail}`;
+      // Si el chat todavía no tenía mensajes, se crea vacío para que el médico lo siga viendo en su lista
+      if (!localStorage.getItem(`melascan_chat_${chatId}`)) {
+        localStorage.setItem(`melascan_chat_${chatId}`, '[]');
+      }
+      // Al paciente se le oculta
+      localStorage.setItem(`melascan_hidden_${chatId}_${patientEmail}`, '1');
+    });
     // Médico agregado: el chat vuelve a estar visible
     added.forEach((d) => localStorage.removeItem(`melascan_hidden_${d}__${patientEmail}_${patientEmail}`));
 

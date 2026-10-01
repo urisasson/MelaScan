@@ -174,7 +174,7 @@ export default function Inicio() {
         <div className="footer-inner">
           <div>
           <div className="footer-brand">
-              <LogoMark />
+          <img src="/logo-blanco.png" alt="MelaScan" className="logo-badge-img" />
             </div>
             <p className="footer-team">
               MelaScan • Uriel Sasson, Ivan Rajmilovich, Ezequiel Zwiebel, Franco Caruso.

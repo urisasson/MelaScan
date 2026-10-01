@@ -692,3 +692,8 @@ h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-w
 @media (min-width: 981px) {
   .sidebar { height: 100vh; align-self: flex-start; overflow-y: auto; }
 }
+
+.footer-inner { align-items: end; }
+.footer-disclaimer-block { text-align: left; }
+.footer-disclaimer-block p { font-size: 12.5px; line-height: 1.9; }
+.footer-team, .footer-contact { line-height: 1.9; }
