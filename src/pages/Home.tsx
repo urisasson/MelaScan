@@ -15,6 +15,7 @@ interface AnalysisRecord {
   doctorName?: string;
   patientEmail?: string;
   patientName?: string;
+  sentTo?: { email: string; name: string }[];
 }
 
 interface StoredUser {
@@ -235,19 +236,25 @@ export default function Home() {
     setPatientSaved(true);
   };
 
+  // Enviar: se suma el paciente a la lista de envíos (no cambia el paciente guardado en la tabla)
   const handleConfirmSend = () => {
     if (!recordId || !selectedPatient || !session) return;
 
     const raw = localStorage.getItem('melascan_historial');
     const historial: AnalysisRecord[] = raw ? JSON.parse(raw) : [];
-    const updated = historial.map((r) =>
-      r.id === recordId
-        ? { ...r, patientEmail: selectedPatient.email, patientName: selectedPatient.name, sentToPatient: true }
-        : r
-    );
+    const updated = historial.map((r) => {
+      if (r.id !== recordId) return r;
+      const prevSent = r.sentTo ?? [];
+      const alreadySent = prevSent.some((s) => s.email === selectedPatient.email);
+      return {
+        ...r,
+        sentToPatient: true,
+        sentTo: alreadySent ? prevSent : [...prevSent, { email: selectedPatient.email, name: selectedPatient.name }],
+      };
+    });
     localStorage.setItem('melascan_historial', JSON.stringify(updated));
 
-    // Al enviar el análisis, el paciente queda asignado a este médico y le aparece el chat
+    // El paciente queda asignado a este médico y le aparece el chat
     const usersNowRaw = localStorage.getItem('melascan_users');
     const allUsers: StoredUser[] = usersNowRaw ? JSON.parse(usersNowRaw) : [];
     const updatedUsers = allUsers.map((u) => {
@@ -373,7 +380,7 @@ export default function Home() {
                 </div>
                 {descriptionSaved && <span className="sent-confirm">Guardado en el historial ✓</span>}
 
-                <div className="scan-section-title"><IconSend /> Enviar análisis al paciente</div>
+                <div className="scan-section-title"><IconSend /> Enviar análisis a tu paciente</div>
 
                 {allPatients.length === 0 ? (
                   <p className="form-hint">Todavía no hay pacientes registrados en el sistema.</p>
@@ -394,7 +401,7 @@ export default function Home() {
                       onChange={(e) => setPatientQuery(e.target.value)}
                       onFocus={() => setShowPatientDropdown(true)}
                       onBlur={() => setTimeout(() => setShowPatientDropdown(false), 150)}
-                      placeholder="Escriba el nombre del paciente"
+                      placeholder="Escriba el nombre de su paciente"
                     />
                     {showPatientDropdown && (
                       <div className="searchable-dropdown">

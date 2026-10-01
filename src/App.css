@@ -697,3 +697,16 @@ h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-w
 .footer-disclaimer-block { text-align: left; }
 .footer-disclaimer-block p { font-size: 12.5px; line-height: 1.9; }
 .footer-team, .footer-contact { line-height: 1.9; }
+.link-danger
+/* ==================== Botón "Volver" (Historial y Mis Análisis) ==================== */
+.back-link {
+  display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  padding: 9px 16px; font-size: 14px; font-weight: 700; color: #14181A;
+  font-family: inherit; cursor: pointer; box-shadow: 0 1px 3px rgba(20, 24, 26, 0.05);
+}
+.back-link:hover { background: var(--paper); color: #14181A; }
+
+/* Estados "Guardado ✓" / "Enviado ✓" al lado de los botones */
+.patient-actions-row { align-items: center; }
+.patient-actions-row .sent-confirm { margin-top: 0; display: inline-flex; align-items: center; }

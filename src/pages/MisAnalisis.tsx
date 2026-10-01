@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 
+interface SentEntry {
+  email: string;
+  name: string;
+}
+
 interface AnalysisRecord {
   id: string;
   date: string;
@@ -12,6 +17,8 @@ interface AnalysisRecord {
   sentToPatient: boolean;
   doctorName?: string;
   patientEmail?: string;
+  patientName?: string;
+  sentTo?: SentEntry[];
 }
 
 interface Session {
@@ -21,11 +28,25 @@ interface Session {
 
 const ALL_CRITERIA: string[] = ['A', 'B', 'C', 'D', 'E'];
 
+function getSentTo(r: AnalysisRecord): SentEntry[] {
+  if (r.sentTo) return r.sentTo;
+  return r.sentToPatient && r.patientEmail ? [{ email: r.patientEmail, name: r.patientName ?? '' }] : [];
+}
+
 function IconSearch() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="11" cy="11" r="8" />
       <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
+
+function IconArrowLeft() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="19" y1="12" x2="5" y2="12" />
+      <polyline points="12 19 5 12 12 5" />
     </svg>
   );
 }
@@ -54,7 +75,7 @@ export default function MisAnalisis() {
 
   const session = guardSession;
 
-  const myAnalyses = all.filter((r) => r.sentToPatient && r.patientEmail === session.email);
+  const myAnalyses = all.filter((r) => getSentTo(r).some((s) => s.email === session.email));
   const entries = myAnalyses.filter((r) => (r.doctorName ?? '').toLowerCase().includes(search.toLowerCase()));
   const selected = myAnalyses.find((a) => a.id === selectedId) ?? null;
 
@@ -64,7 +85,7 @@ export default function MisAnalisis() {
         <Sidebar />
         <main className="shell-content">
           <button className="back-link" onClick={() => setSelectedId(null)}>
-            ‹ Volver a Mis Análisis
+            <IconArrowLeft /> Volver a Mis Análisis
           </button>
 
           <div className="scanner-grid-v2">
