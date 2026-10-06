@@ -150,7 +150,7 @@ function AnalysisDetail({ recordId, onBack }: { recordId: string; onBack: () => 
   const record = readHistorial().find((r) => r.id === recordId);
 
   const [description, setDescription] = useState(record?.description ?? '');
-  const [descriptionSaved, setDescriptionSaved] = useState(false);
+  const [, setDescriptionSaved] = useState(false);
   const [showTips, setShowTips] = useState(false);
   const [chosenPatient, setChosenPatient] = useState<SentEntry | null>(null);
   // Lo que hiciste con el paciente recién elegido (arranca en cero, como uno nuevo)
@@ -182,8 +182,7 @@ function AnalysisDetail({ recordId, onBack }: { recordId: string; onBack: () => 
   // Paciente que se muestra: el que elegiste con "Cambiar", o el guardado, o el último al que se envió
   const shownPatient = chosenPatient ?? savedPatient ?? lastSent;
 
-  // Si lo elegiste con "Cambiar" (aunque sea el mismo), se trata como uno nuevo:
-  // aparecen Guardar y Enviar hasta que los toques
+  // Si lo elegiste con "Cambiar" (aunque sea el mismo), se trata como uno nuevo
   const isSaved = chosenPatient
     ? chosenSaved
     : !!shownPatient && savedPatient?.email === shownPatient.email;
@@ -280,91 +279,98 @@ function AnalysisDetail({ recordId, onBack }: { recordId: string; onBack: () => 
         </div>
 
         <div className="scan-card">
-          <div className="result-top-badge-row">
-            <span className="result-risk-pill">RIESGO —</span>
-            <span className="result-percentage">Riesgo IA<strong>—%</strong></span>
-          </div>
-          <div className="result-status-main">
-            <span className="result-status-icon">
-              <IconSearch size={18} />
-            </span>
-            <div>
+          {/* Recuadro grande: resultado triage + riesgo IA */}
+          <div className="result-hero">
+            <span className="result-hero-icon"><IconSearch size={20} /></span>
+            <div className="result-hero-main">
+              <span className="result-risk-pill">RIESGO —</span>
               <h4>—</h4>
               <p>—</p>
             </div>
-          </div>
-
-          <div className="scan-section-title"><IconGrid /> Clasificación a partir del criterio ABCDE</div>
-          <div className="abcde-detail-grid">
-            {ABCDE_CRITERIA.map((c) => (
-              <div className="abcde-detail-card" key={c.letter}>
-                <span className="abcde-detail-letter">{c.letter} - {c.title}</span>
-                <span className="abcde-detail-desc">—</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="scan-section-title"><IconCheckSquare /> Acciones Recomendadas</div>
-          <ul className="actions-checklist">
-            <li>—</li>
-            <li>—</li>
-            <li>—</li>
-          </ul>
-
-          <div className="scan-section-title"><IconFileText /> Descripción</div>
-          <div className="inline-form-row">
-            <input
-              value={description}
-              onChange={(e) => { setDescription(e.target.value); setDescriptionSaved(false); }}
-              placeholder="Escriba sus anotaciones sobre el análisis realizado"
-            />
-            <button className="btn-secondary" onClick={handleSaveDescription}>Guardar</button>
-          </div>
-          {descriptionSaved && <span className="sent-confirm">Guardado en el historial ✓</span>}
-
-          <div className="scan-section-title"><IconSend /> Enviar análisis a tu paciente</div>
-
-          {allPatients.length === 0 ? (
-            <p className="form-hint">Todavía no hay pacientes registrados en el sistema.</p>
-          ) : confirmingSend && shownPatient ? (
-            <div className="confirm-send-box">
-              <p>¿Enviar este análisis a <strong>{shownPatient.name}</strong>?</p>
-              <div className="confirm-send-actions">
-                <button className="btn-secondary" onClick={() => setConfirmingSend(false)}>Cancelar</button>
-                <button className="btn-primary" onClick={handleConfirmSend}>Confirmar envío</button>
-              </div>
+            <div className="result-hero-risk">
+              <span>Riesgo IA</span>
+              <strong>—%</strong>
             </div>
-          ) : shownPatient && !choosing ? (
-            <div>
-              <div className="selected-patient-row">
-                <span>Paciente: <strong>{shownPatient.name}</strong></span>
-                <button type="button" className="link-btn" onClick={() => setChoosing(true)}>
-                  Cambiar
-                </button>
-              </div>
-              <div className="patient-actions-row">
-                {isSaved ? (
-                  <span className="sent-confirm">Guardado ✓</span>
-                ) : (
-                  <button className="btn-secondary" onClick={handleSavePatient}>Guardar</button>
-                )}
-                {isSent ? (
-                  <span className="sent-confirm">Enviado ✓</span>
-                ) : (
-                  <button className="btn-primary" onClick={() => setConfirmingSend(true)}>Enviar</button>
-                )}
-              </div>
+          </div>
+
+          <div className="result-section">
+            <div className="result-section-head">
+              <div className="scan-section-title"><IconGrid /> Clasificación a partir del criterio ABCDE</div>
             </div>
-          ) : (
-            <div>
-              {shownPatient && (
-                <div className="selected-patient-row">
-                  <span>Elegí otro paciente</span>
-                  <button type="button" className="link-btn" onClick={() => setChoosing(false)}>
-                    Cancelar
-                  </button>
+            <div className="abcde-detail-grid">
+              {ABCDE_CRITERIA.map((c) => (
+                <div className="abcde-detail-card" key={c.letter}>
+                  <span className="abcde-detail-letter">{c.letter} - {c.title}</span>
+                  <span className="abcde-detail-desc">—</span>
                 </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="result-section">
+            <div className="result-section-head">
+              <div className="scan-section-title"><IconCheckSquare /> Acciones Recomendadas</div>
+            </div>
+            <ul className="actions-checklist">
+              <li>—</li>
+              <li>—</li>
+              <li>—</li>
+            </ul>
+          </div>
+
+          <div className="result-section">
+            <div className="result-section-head">
+              <div className="scan-section-title"><IconFileText /> Descripción</div>
+            </div>
+            <div className="inline-form-row">
+              <input
+                value={description}
+                onChange={(e) => { setDescription(e.target.value); setDescriptionSaved(false); }}
+                placeholder="Escriba sus anotaciones sobre el análisis"
+              />
+                <button className="btn-primary btn-sm" onClick={handleSaveDescription}>Guardar</button>
+            </div>
+          </div>
+
+          <div className="result-section">
+            <div className="result-section-head">
+              <div className="scan-section-title"><IconSend /> Enviar análisis a tu paciente</div>
+              {shownPatient && !confirmingSend && (
+                choosing ? (
+                  <button type="button" className="link-btn" onClick={() => setChoosing(false)}>Cancelar</button>
+                ) : (
+                  <button type="button" className="link-btn" onClick={() => setChoosing(true)}>Cambiar</button>
+                )
               )}
+            </div>
+
+            {allPatients.length === 0 ? (
+              <p className="form-hint">Todavía no hay pacientes registrados en el sistema.</p>
+            ) : confirmingSend && shownPatient ? (
+              <div className="confirm-send-box">
+                <p>¿Enviar este análisis a <strong>{shownPatient.name}</strong>?</p>
+                <div className="confirm-send-actions">
+                  <button className="btn-secondary" onClick={() => setConfirmingSend(false)}>Cancelar</button>
+                  <button className="btn-primary" onClick={handleConfirmSend}>Confirmar envío</button>
+                </div>
+              </div>
+            ) : shownPatient && !choosing ? (
+              <div className="patient-line">
+                <span>Paciente elegido: <strong>{shownPatient.name}</strong></span>
+                <div className="patient-line-actions">
+                  {isSent ? (
+                    <span className="status-done">Enviado ✓</span>
+                  ) : (
+                    <button className="btn-send" onClick={() => setConfirmingSend(true)}>Enviar</button>
+                  )}
+                  {isSaved ? (
+                    <span className="status-done">Guardado ✓</span>
+                  ) : (
+                    <button className="btn-save-outline" onClick={handleSavePatient}>Guardar</button>
+                  )}
+                </div>
+              </div>
+            ) : (
               <div className="searchable-select">
                 <input
                   value={patientQuery}
@@ -391,10 +397,10 @@ function AnalysisDetail({ recordId, onBack }: { recordId: string; onBack: () => 
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          <div className="disclaimer" style={{ marginTop: 16 }}>
+          <div className="disclaimer" style={{ marginTop: 6 }}>
             Este resultado es orientativo y no reemplaza el diagnóstico médico ni la biopsia.
           </div>
         </div>

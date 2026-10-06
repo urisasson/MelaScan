@@ -112,7 +112,7 @@ function IconSend() {
 }
 function IconSearch() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="11" cy="11" r="8" />
       <line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
@@ -127,7 +127,7 @@ export default function Home() {
   const [hasResult, setHasResult] = useState(false);
   const [showTips, setShowTips] = useState(false);
   const [description, setDescription] = useState('');
-  const [descriptionSaved, setDescriptionSaved] = useState(false);
+  const [, setDescriptionSaved] = useState(false);
   const [recordId, setRecordId] = useState<string | null>(null);
 
   const [patientQuery, setPatientQuery] = useState('');
@@ -137,7 +137,6 @@ export default function Home() {
   const [patientSaved, setPatientSaved] = useState(false);
   const [confirmingSend, setConfirmingSend] = useState(false);
   const [locked, setLocked] = useState(false); // true = ya se envió (no se puede volver a enviar ni cambiar)
-  const [sentTo, setSentTo] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -172,7 +171,6 @@ export default function Home() {
     setPatientSaved(false);
     setConfirmingSend(false);
     setLocked(false);
-    setSentTo(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -199,7 +197,6 @@ export default function Home() {
     setPatientSaved(false);
     setConfirmingSend(false);
     setLocked(false);
-    setSentTo(null);
     const reader = new FileReader();
     reader.onload = (e) => setPreview(e.target?.result as string);
     reader.readAsDataURL(f);
@@ -301,7 +298,6 @@ export default function Home() {
 
     setLocked(true);
     setConfirmingSend(false);
-    setSentTo(selectedPatient.name);
   };
 
   return (
@@ -372,123 +368,136 @@ export default function Home() {
               </div>
             ) : (
               <>
-                <div className="result-top-badge-row">
-                  <span className="result-risk-pill">RIESGO —</span>
-                  <span className="result-percentage">Riesgo IA<strong>—%</strong></span>
-                </div>
-                <div className="result-status-main">
-                  <span className="result-status-icon">
-                    <IconSearch />
-                  </span>
-                  <div>
+                {/* Recuadro grande: resultado triage + riesgo IA */}
+                <div className="result-hero">
+                  <span className="result-hero-icon"><IconSearch /></span>
+                  <div className="result-hero-main">
+                    <span className="result-risk-pill">RIESGO —</span>
                     <h4>—</h4>
                     <p>—</p>
                   </div>
-                </div>
-
-                <div className="scan-section-title"><IconGrid /> Clasificación a partir del criterio ABCDE</div>
-                <div className="abcde-detail-grid">
-                  {ABCDE_CRITERIA.map((c) => (
-                    <div className="abcde-detail-card" key={c.letter}>
-                      <span className="abcde-detail-letter">{c.letter} - {c.title}</span>
-                      <span className="abcde-detail-desc">—</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="scan-section-title"><IconCheckSquare /> Acciones Recomendadas</div>
-                <ul className="actions-checklist">
-                  <li>—</li>
-                  <li>—</li>
-                  <li>—</li>
-                </ul>
-
-                <div className="scan-section-title"><IconFileText /> Descripción</div>
-                <div className="inline-form-row">
-                  <input
-                    value={description}
-                    onChange={(e) => { setDescription(e.target.value); setDescriptionSaved(false); }}
-                    placeholder="Escriba sus anotaciones sobre el análisis realizado"
-                  />
-                  <button className="btn-secondary" onClick={handleSaveDescription}>Guardar</button>
-                </div>
-                {descriptionSaved && <span className="sent-confirm">Guardado en el historial ✓</span>}
-
-                <div className="scan-section-title"><IconSend /> Enviar análisis a tu paciente</div>
-
-                {allPatients.length === 0 ? (
-                  <p className="form-hint">Todavía no hay pacientes registrados en el sistema.</p>
-                ) : confirmingSend && selectedPatient ? (
-                  <div className="confirm-send-box">
-                    <p>¿Enviar este análisis a <strong>{selectedPatient.name}</strong>?</p>
-                    <div className="confirm-send-actions">
-                      <button className="btn-secondary" onClick={() => setConfirmingSend(false)}>Cancelar</button>
-                      <button className="btn-primary" onClick={handleConfirmSend}>Confirmar envío</button>
-                    </div>
+                  <div className="result-hero-risk">
+                    <span>Riesgo IA</span>
+                    <strong>—%</strong>
                   </div>
-                ) : !selectedPatient ? (
-                  <div className="searchable-select">
-                    <input
-                      value={patientQuery}
-                      onChange={(e) => { setPatientQuery(e.target.value); setShowPatientDropdown(true); }}
-                      onFocus={() => setShowPatientDropdown(true)}
-                      onBlur={() => setTimeout(() => setShowPatientDropdown(false), 150)}
-                      placeholder="Escriba el nombre de su paciente"
-                    />
-                    {showPatientDropdown && (
-                      <div className="searchable-dropdown">
-                        {filteredPatients.length === 0 ? (
-                          <div className="searchable-empty">Sin resultados</div>
-                        ) : (
-                          filteredPatients.map((p) => (
-                            <button
-                              key={p.email}
-                              type="button"
-                              onMouseDown={() => {
-                                setSelectedPatient({ email: p.email, name: p.name });
-                                setPatientQuery(p.name);
-                                setShowPatientDropdown(false);
-                                setPatientSaved(false);
-                              }}
-                            >
-                              {p.name}
-                            </button>
-                          ))
-                        )}
+                </div>
+
+                <div className="result-section">
+                  <div className="result-section-head">
+                    <div className="scan-section-title"><IconGrid /> Clasificación a partir del criterio ABCDE</div>
+                  </div>
+                  <div className="abcde-detail-grid">
+                    {ABCDE_CRITERIA.map((c) => (
+                      <div className="abcde-detail-card" key={c.letter}>
+                        <span className="abcde-detail-letter">{c.letter} - {c.title}</span>
+                        <span className="abcde-detail-desc">—</span>
                       </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="result-section">
+                  <div className="result-section-head">
+                    <div className="scan-section-title"><IconCheckSquare /> Acciones Recomendadas</div>
+                  </div>
+                  <ul className="actions-checklist">
+                    <li>—</li>
+                    <li>—</li>
+                    <li>—</li>
+                  </ul>
+                </div>
+
+                <div className="result-section">
+                  <div className="result-section-head">
+                    <div className="scan-section-title"><IconFileText /> Descripción</div>
+                  </div>
+                  <div className="inline-form-row">
+                    <input
+                      value={description}
+                      onChange={(e) => { setDescription(e.target.value); setDescriptionSaved(false); }}
+                      placeholder="Escriba sus anotaciones sobre el análisis"
+                    />
+                      <button className="btn-primary btn-sm" onClick={handleSaveDescription}>Guardar</button>
+                  </div>
+                </div>
+
+                <div className="result-section">
+                  <div className="result-section-head">
+                    <div className="scan-section-title"><IconSend /> Enviar análisis a tu paciente</div>
+                    {/* Una vez enviado ya no se puede cambiar el paciente */}
+                    {selectedPatient && !locked && !confirmingSend && (
+                      <button
+                        type="button"
+                        className="link-btn"
+                        onClick={() => { setSelectedPatient(null); setPatientQuery(''); setPatientSaved(false); }}
+                      >
+                        Cambiar
+                      </button>
                     )}
                   </div>
-                ) : (
-                  <div>
-                    <div className="selected-patient-row">
-                      <span>Paciente elegido: <strong>{selectedPatient.name}</strong></span>
-                      {/* Una vez enviado ya no se puede cambiar el paciente */}
-                      {!locked && (
-                        <button
-                          type="button"
-                          className="link-btn"
-                          onClick={() => { setSelectedPatient(null); setPatientQuery(''); setPatientSaved(false); }}
-                        >
-                          Cambiar
-                        </button>
+
+                  {allPatients.length === 0 ? (
+                    <p className="form-hint">Todavía no hay pacientes registrados en el sistema.</p>
+                  ) : confirmingSend && selectedPatient ? (
+                    <div className="confirm-send-box">
+                      <p>¿Enviar este análisis a <strong>{selectedPatient.name}</strong>?</p>
+                      <div className="confirm-send-actions">
+                        <button className="btn-secondary" onClick={() => setConfirmingSend(false)}>Cancelar</button>
+                        <button className="btn-primary" onClick={handleConfirmSend}>Confirmar envío</button>
+                      </div>
+                    </div>
+                  ) : !selectedPatient ? (
+                    <div className="searchable-select">
+                      <input
+                        value={patientQuery}
+                        onChange={(e) => { setPatientQuery(e.target.value); setShowPatientDropdown(true); }}
+                        onFocus={() => setShowPatientDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowPatientDropdown(false), 150)}
+                        placeholder="Escriba el nombre de su paciente"
+                      />
+                      {showPatientDropdown && (
+                        <div className="searchable-dropdown">
+                          {filteredPatients.length === 0 ? (
+                            <div className="searchable-empty">Sin resultados</div>
+                          ) : (
+                            filteredPatients.map((p) => (
+                              <button
+                                key={p.email}
+                                type="button"
+                                onMouseDown={() => {
+                                  setSelectedPatient({ email: p.email, name: p.name });
+                                  setPatientQuery(p.name);
+                                  setShowPatientDropdown(false);
+                                  setPatientSaved(false);
+                                }}
+                              >
+                                {p.name}
+                              </button>
+                            ))
+                          )}
+                        </div>
                       )}
                     </div>
-                    {(!patientSaved || !locked) && (
-                      <div className="patient-actions-row">
-                        {!patientSaved && (
-                          <button className="btn-secondary" onClick={handleSavePatient}>Guardar</button>
+                  ) : (
+                    <div className="patient-line">
+                      <span>Paciente elegido: <strong>{selectedPatient.name}</strong></span>
+                      <div className="patient-line-actions">
+                        {locked ? (
+                          <span className="status-done">Enviado ✓</span>
+                        ) : (
+                          <button className="btn-send" onClick={() => setConfirmingSend(true)}>Enviar</button>
                         )}
-                        {!locked && (
-                          <button className="btn-primary" onClick={() => setConfirmingSend(true)}>Enviar</button>
+                        {patientSaved ? (
+                          <span className="status-done">Guardado ✓</span>
+                        ) : (
+                          <button className="btn-save-outline" onClick={handleSavePatient}>Guardar</button>
                         )}
                       </div>
-                    )}
-                    {patientSaved && <span className="sent-confirm">Guardado en el historial ✓</span>}
-                    {locked && <span className="sent-confirm">Enviado a {sentTo} ✓</span>}
-                  </div>
-                )}
+                    </div>
+                  )}
+                </div>
 
-                <div className="disclaimer">
+                <div className="disclaimer" style={{ marginTop: 6 }}>
                   Este resultado es orientativo y no reemplaza el diagnóstico médico ni la biopsia.
                 </div>
               </>

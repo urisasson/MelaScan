@@ -737,3 +737,55 @@ button.back-link:hover {
 .historial-table th {
   position: sticky; top: 0; z-index: 1;
 }
+
+/* ==================== Resultado: recuadro grande de arriba ==================== */
+.result-hero {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 12px;
+  background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px;
+}
+.result-hero-icon {
+  width: 46px; height: 46px; border-radius: 10px; flex-shrink: 0;
+  background: var(--surface); border: 1px solid var(--line); color: var(--muted);
+  display: flex; align-items: center; justify-content: center;
+}
+.result-hero-main { flex: 1; min-width: 0; }
+.result-hero-main .result-risk-pill { display: inline-block; margin-bottom: 5px; }
+.result-hero-main h4 { font-size: 15px; font-weight: 700; color: #14181A; margin-bottom: 2px; }
+.result-hero-main p { font-size: 12px; color: var(--muted); }
+.result-hero-risk { flex-shrink: 0; text-align: center; padding-left: 16px; border-left: 1px solid var(--line); }
+.result-hero-risk span { display: block; font-size: 10.5px; color: var(--muted); }
+.result-hero-risk strong { display: block; font-size: 22px; font-weight: 800; color: #14181A; }
+
+/* ==================== Resultado: cada sección en su recuadro ==================== */
+.result-section {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  padding: 14px 16px; margin-bottom: 10px;
+}
+.result-section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.result-section-head .scan-section-title { margin: 0; }
+.result-section .abcde-detail-grid { margin-bottom: 0; }
+.result-section .abcde-detail-card { border: 1px solid var(--line); }
+.result-section .actions-checklist { margin-bottom: 0; }
+.inline-form-row { align-items: center; }
+
+/* ==================== Paciente elegido + botones en la misma línea ==================== */
+.patient-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; }
+.patient-line-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.btn-sm { padding: 10px 16px; font-size: 13px; font-weight: 600; }
+.btn-send {
+  background: #1F6F65; color: #fff; border: none; border-radius: 8px;
+  padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.btn-send:hover { background: #185A52; }
+.btn-save-outline {
+  background: var(--surface); color: var(--accent); border: 1.5px solid var(--accent); border-radius: 8px;
+  padding: 7px 15px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.btn-save-outline:hover { background: var(--paper); }
+.status-done { font-size: 12.5px; font-weight: 600; color: var(--sage); white-space: nowrap; }
+.result-section-head .link-btn { font-size: 13px; }
+
+/* "Cambiar" queda centrado justo arriba de "Guardar" */
+.result-section-head .link-btn { min-width: 84px; text-align: center; }
+.btn-save-outline { min-width: 84px; }
+.patient-line-actions .status-done:last-child { min-width: 84px; text-align: center; }
