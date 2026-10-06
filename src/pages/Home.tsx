@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
 import Sidebar from '../components/Sidebar';
 
@@ -136,8 +136,10 @@ export default function Home() {
 
   const [patientSaved, setPatientSaved] = useState(false);
   const [confirmingSend, setConfirmingSend] = useState(false);
-  const [locked, setLocked] = useState(false);
+  const [locked, setLocked] = useState(false); // true = ya se envió (no se puede volver a enviar ni cambiar)
   const [sentTo, setSentTo] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sessionRaw = localStorage.getItem('melascan_session');
   const session: Session | null = sessionRaw ? JSON.parse(sessionRaw) : null;
@@ -152,6 +154,37 @@ export default function Home() {
     if (!q) return true;
     return p.name.toLowerCase().split(' ').some((word) => word.startsWith(q));
   });
+
+  // Deja la pantalla como recién entrada (sin foto ni resultado)
+  const resetScanner = () => {
+    setFile(null);
+    setPreview(null);
+    setDragging(false);
+    setAnalyzing(false);
+    setHasResult(false);
+    setShowTips(false);
+    setDescription('');
+    setDescriptionSaved(false);
+    setRecordId(null);
+    setPatientQuery('');
+    setShowPatientDropdown(false);
+    setSelectedPatient(null);
+    setPatientSaved(false);
+    setConfirmingSend(false);
+    setLocked(false);
+    setSentTo(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // Tocar "Scaner IA" en el menú estando ya acá: vuelve al inicio del escáner
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.path === '/home') resetScanner();
+    };
+    window.addEventListener('melascan-nav-reset', handler);
+    return () => window.removeEventListener('melascan-nav-reset', handler);
+  }, []);
 
   const loadFile = (f: File | undefined) => {
     if (!f) return;
@@ -301,6 +334,7 @@ export default function Home() {
               </div>
             </label>
             <input
+              ref={fileInputRef}
               id="fileInput"
               type="file"
               accept="image/png, image/jpeg"
@@ -384,8 +418,6 @@ export default function Home() {
 
                 {allPatients.length === 0 ? (
                   <p className="form-hint">Todavía no hay pacientes registrados en el sistema.</p>
-                ) : locked ? (
-                  <span className="sent-confirm">Enviado a {sentTo} ✓</span>
                 ) : confirmingSend && selectedPatient ? (
                   <div className="confirm-send-box">
                     <p>¿Enviar este análisis a <strong>{selectedPatient.name}</strong>?</p>
@@ -398,7 +430,7 @@ export default function Home() {
                   <div className="searchable-select">
                     <input
                       value={patientQuery}
-                      onChange={(e) => setPatientQuery(e.target.value)}
+                      onChange={(e) => { setPatientQuery(e.target.value); setShowPatientDropdown(true); }}
                       onFocus={() => setShowPatientDropdown(true)}
                       onBlur={() => setTimeout(() => setShowPatientDropdown(false), 150)}
                       placeholder="Escriba el nombre de su paciente"
@@ -430,19 +462,29 @@ export default function Home() {
                   <div>
                     <div className="selected-patient-row">
                       <span>Paciente elegido: <strong>{selectedPatient.name}</strong></span>
-                      <button
-                        type="button"
-                        className="link-btn"
-                        onClick={() => { setSelectedPatient(null); setPatientQuery(''); setPatientSaved(false); }}
-                      >
-                        Cambiar
-                      </button>
+                      {/* Una vez enviado ya no se puede cambiar el paciente */}
+                      {!locked && (
+                        <button
+                          type="button"
+                          className="link-btn"
+                          onClick={() => { setSelectedPatient(null); setPatientQuery(''); setPatientSaved(false); }}
+                        >
+                          Cambiar
+                        </button>
+                      )}
                     </div>
-                    <div className="patient-actions-row">
-                      <button className="btn-secondary" onClick={handleSavePatient}>Guardar</button>
-                      <button className="btn-primary" onClick={() => setConfirmingSend(true)}>Enviar</button>
-                    </div>
+                    {(!patientSaved || !locked) && (
+                      <div className="patient-actions-row">
+                        {!patientSaved && (
+                          <button className="btn-secondary" onClick={handleSavePatient}>Guardar</button>
+                        )}
+                        {!locked && (
+                          <button className="btn-primary" onClick={() => setConfirmingSend(true)}>Enviar</button>
+                        )}
+                      </div>
+                    )}
                     {patientSaved && <span className="sent-confirm">Guardado en el historial ✓</span>}
+                    {locked && <span className="sent-confirm">Enviado a {sentTo} ✓</span>}
                   </div>
                 )}
 

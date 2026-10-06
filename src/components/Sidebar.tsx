@@ -146,7 +146,6 @@ function EditDoctorsModal({
     const removed = initialEmails.filter((e) => !draftEmails.includes(e));
     const added = draftEmails.filter((e) => !initialEmails.includes(e));
 
-    // Médico quitado: se oculta el chat (si él te vuelve a escribir, reaparece)
     removed.forEach((d) => {
       const chatId = `${d}__${patientEmail}`;
       // Si el chat todavía no tenía mensajes, se crea vacío para que el médico lo siga viendo en su lista
@@ -205,10 +204,10 @@ function EditDoctorsModal({
             <div className="searchable-select">
               <input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => { setQuery(e.target.value); setShowDropdown(true); }}
                 onFocus={() => setShowDropdown(true)}
                 onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
-                placeholder="Buscar por el nombre del médico"
+                placeholder="Buscar por nombre para agregar a un médico"
               />
               {showDropdown && (
                 <div className="searchable-dropdown">
@@ -266,6 +265,7 @@ export default function Sidebar() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [editDoctorsOpen, setEditDoctorsOpen] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [, setTick] = useState(0);
 
@@ -296,6 +296,7 @@ export default function Sidebar() {
   };
 
   const handleLogout = () => {
+    setConfirmLogout(false);
     localStorage.removeItem('melascan_session');
     navigate('/');
   };
@@ -398,7 +399,8 @@ export default function Sidebar() {
                 </button>
               )}
               <div className="profile-menu-divider" />
-              <button type="button" className="danger" onClick={handleLogout}>Cerrar sesión</button>
+              {/* El menú queda abierto detrás del cartel: si cancelás, sigue ahí */}
+              <button type="button" className="danger" onClick={() => setConfirmLogout(true)}>Cerrar sesión</button>
             </div>
           </>
         )}
@@ -410,6 +412,20 @@ export default function Sidebar() {
           onClose={() => setEditDoctorsOpen(false)}
           onSaved={() => { setEditDoctorsOpen(false); showToast('Cambios guardados'); }}
         />
+      )}
+
+      {confirmLogout && createPortal(
+        <div className="modal-backdrop confirm-backdrop">
+          <div className="modal-card confirm-card logout-card" onClick={(e) => e.stopPropagation()}>
+            <h3>Cerrar Sesión</h3>
+            <p>¿Estás seguro de que querés cerrar sesión?</p>
+            <div className="confirm-actions">
+              <button type="button" className="btn-cancel-gray" onClick={() => setConfirmLogout(false)}>Cancelar</button>
+              <button type="button" className="btn-danger" onClick={handleLogout}>Continuar</button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {toast && createPortal(<div className="toast">{toast}</div>, document.body)}
