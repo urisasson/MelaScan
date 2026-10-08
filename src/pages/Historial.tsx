@@ -36,6 +36,34 @@ interface Session {
   role: 'medico' | 'paciente';
 }
 
+function normalize(s: string) {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+function matchesWordStart(text: string, query: string): boolean {
+  const q = normalize(query.trim());
+  if (!q) return true;
+  return normalize(text).split(' ').some((word) => word.startsWith(q));
+}
+
+function HighlightMatch({ text, query }: { text: string; query: string }) {
+  const q = normalize(query.trim());
+  if (!q) return <>{text}</>;
+  const t = normalize(text);
+  let idx = -1;
+  for (let i = 0; i < t.length; i++) {
+    if ((i === 0 || t[i - 1] === ' ') && t.startsWith(q, i)) { idx = i; break; }
+  }
+  if (idx === -1) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <strong className="search-hit">{text.slice(idx, idx + q.length)}</strong>
+      {text.slice(idx + q.length)}
+    </>
+  );
+}
+
 const ALL_CRITERIA: string[] = ['A', 'B', 'C', 'D', 'E'];
 
 const ABCDE_CRITERIA = [
@@ -167,11 +195,7 @@ function AnalysisDetail({ recordId, onBack }: { recordId: string; onBack: () => 
   const usersRaw = localStorage.getItem('melascan_users');
   const users: StoredUser[] = usersRaw ? JSON.parse(usersRaw) : [];
   const allPatients = users.filter((u) => u.role === 'paciente').sort((a, b) => a.name.localeCompare(b.name));
-  const filteredPatients = allPatients.filter((p) => {
-    const q = patientQuery.trim().toLowerCase();
-    if (!q) return true;
-    return p.name.toLowerCase().split(' ').some((word) => word.startsWith(q));
-  });
+  const filteredPatients = allPatients.filter((p) => matchesWordStart(p.name, patientQuery));
 
   const sentTo = getSentTo(record);
   const savedPatient: SentEntry | null = record.patientEmail
@@ -390,7 +414,7 @@ function AnalysisDetail({ recordId, onBack }: { recordId: string; onBack: () => 
                           type="button"
                           onMouseDown={(ev) => { ev.preventDefault(); handleChoosePatient(p); }}
                         >
-                          {p.name}
+                          <HighlightMatch text={p.name} query={patientQuery} />
                         </button>
                       ))
                     )}
@@ -430,8 +454,7 @@ export default function Historial() {
 
   const session = guardSession;
   const myEntries = readHistorial().filter((r) => r.doctorEmail === session.email);
-  const entries = myEntries.filter((r) => (r.patientName ?? '').toLowerCase().includes(search.toLowerCase()));
-  const selected = myEntries.find((e) => e.id === selectedId) ?? null;
+  const entries = myEntries.filter((r) => matchesWordStart(r.patientName ?? '', search));  const selected = myEntries.find((e) => e.id === selectedId) ?? null;
 
   if (selected) {
     return (
@@ -494,8 +517,7 @@ export default function Historial() {
                 entries.map((entry) => (
                   <tr key={entry.id} className="clickable-row" onClick={() => setSelectedId(entry.id)}>
                     <td><img src={entry.imageDataUrl} alt="Lesión" className="historial-thumb" /></td>
-                    <td>{entry.patientName ?? '—'}</td>
-                    <td>{entry.date}</td>
+                    <td>{entry.patientName ? <HighlightMatch text={entry.patientName} query={search} /> : '—'}</td>                    <td>{entry.date}</td>
                     <td><span className="triage-pill">— Riesgo</span></td>
                     <td>
                       <div className="criteria-dots">

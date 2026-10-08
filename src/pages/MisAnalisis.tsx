@@ -26,7 +26,42 @@ interface Session {
   role: 'medico' | 'paciente';
 }
 
+function normalize(s: string) {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+function matchesWordStart(text: string, query: string): boolean {
+  const q = normalize(query.trim());
+  if (!q) return true;
+  return normalize(text).split(' ').some((word) => word.startsWith(q));
+}
+
+function HighlightMatch({ text, query }: { text: string; query: string }) {
+  const q = normalize(query.trim());
+  if (!q) return <>{text}</>;
+  const t = normalize(text);
+  let idx = -1;
+  for (let i = 0; i < t.length; i++) {
+    if ((i === 0 || t[i - 1] === ' ') && t.startsWith(q, i)) { idx = i; break; }
+  }
+  if (idx === -1) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <strong className="search-hit">{text.slice(idx, idx + q.length)}</strong>
+      {text.slice(idx + q.length)}
+    </>
+  );
+}
+
 const ALL_CRITERIA: string[] = ['A', 'B', 'C', 'D', 'E'];
+const ABCDE_CRITERIA = [
+  { letter: 'A', title: 'Asimetría' },
+  { letter: 'B', title: 'Bordes' },
+  { letter: 'C', title: 'Color' },
+  { letter: 'D', title: 'Diámetro' },
+  { letter: 'E', title: 'Evolución' },
+];
 
 function getSentTo(r: AnalysisRecord): SentEntry[] {
   if (r.sentTo) return r.sentTo;
@@ -47,6 +82,32 @@ function IconArrowLeft() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
       <line x1="19" y1="12" x2="5" y2="12" />
       <polyline points="12 19 5 12 12 5" />
+    </svg>
+  );
+}
+function IconUser() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+    </svg>
+  );
+}
+function IconGrid() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
+    </svg>
+  );
+}
+function IconCheckSquare() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 11l3 3L22 4" />
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
     </svg>
   );
 }
@@ -76,8 +137,7 @@ export default function MisAnalisis() {
   const session = guardSession;
 
   const myAnalyses = all.filter((r) => getSentTo(r).some((s) => s.email === session.email));
-  const entries = myAnalyses.filter((r) => (r.doctorName ?? '').toLowerCase().includes(search.toLowerCase()));
-  const selected = myAnalyses.find((a) => a.id === selectedId) ?? null;
+  const entries = myAnalyses.filter((r) => matchesWordStart(r.doctorName ?? '', search));  const selected = myAnalyses.find((a) => a.id === selectedId) ?? null;
 
   if (selected) {
     return (
@@ -94,32 +154,52 @@ export default function MisAnalisis() {
             </div>
 
             <div className="scan-card">
-              <div className="result-top-badge-row">
-                <span className="result-risk-pill">RIESGO —</span>
-                <span className="result-percentage">Riesgo IA<strong>—%</strong></span>
+              <div className="result-hero">
+                <span className="result-hero-icon"><IconSearch /></span>
+                <div className="result-hero-main">
+                  <span className="result-risk-pill">RIESGO —</span>
+                  <h4>—</h4>
+                  <p>—</p>
+                </div>
+                <div className="result-hero-risk">
+                  <span>Riesgo IA</span>
+                  <strong>—%</strong>
+                </div>
               </div>
 
-              <div className="scan-section-title">Especialista</div>
-              <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>{selected.doctorName ?? '—'}</p>
-
-              <div className="scan-section-title">Clasificación a partir del criterio ABCDE</div>
-              <div className="abcde-detail-grid">
-                {ALL_CRITERIA.map((letter) => (
-                  <div className="abcde-detail-card" key={letter}>
-                    <span className="abcde-detail-letter">{letter}</span>
-                    <span className="abcde-detail-desc">—</span>
-                  </div>
-                ))}
+              <div className="result-section">
+                <div className="result-section-head">
+                  <div className="scan-section-title"><IconUser /> Especialista</div>
+                </div>
+                <p style={{ fontSize: 13, color: '#14181A' }}>{selected.doctorName ?? '—'}</p>
               </div>
 
-              <div className="scan-section-title">Acciones recomendadas</div>
-              <ul className="actions-checklist">
-                <li>—</li>
-                <li>—</li>
-                <li>—</li>
-              </ul>
+              <div className="result-section">
+                <div className="result-section-head">
+                  <div className="scan-section-title"><IconGrid /> Clasificación a partir del criterio ABCDE</div>
+                </div>
+                <div className="abcde-detail-grid">
+                  {ABCDE_CRITERIA.map((c) => (
+                    <div className="abcde-detail-card" key={c.letter}>
+                      <span className="abcde-detail-letter">{c.letter} - {c.title}</span>
+                      <span className="abcde-detail-desc">—</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-              <div className="disclaimer" style={{ marginTop: 16 }}>
+              <div className="result-section">
+                <div className="result-section-head">
+                  <div className="scan-section-title"><IconCheckSquare /> Acciones Recomendadas</div>
+                </div>
+                <ul className="actions-checklist">
+                  <li>—</li>
+                  <li>—</li>
+                  <li>—</li>
+                </ul>
+              </div>
+
+              <div className="disclaimer" style={{ marginTop: 6 }}>
                 Este resultado es orientativo y no reemplaza el diagnóstico médico ni la biopsia.
                 Ante cualquier duda, consultá con tu médico.
               </div>
@@ -178,7 +258,7 @@ export default function MisAnalisis() {
                 entries.map((entry) => (
                   <tr key={entry.id} className="clickable-row" onClick={() => setSelectedId(entry.id)}>
                     <td><img src={entry.imageDataUrl} alt="Lesión" className="historial-thumb" /></td>
-                    <td>{entry.doctorName ?? '—'}</td>
+                    <td>{entry.doctorName ? <HighlightMatch text={entry.doctorName} query={search} /> : '—'}</td>
                     <td>{entry.date}</td>
                     <td><span className="triage-pill">— Riesgo</span></td>
                     <td>

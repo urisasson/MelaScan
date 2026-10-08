@@ -133,6 +133,7 @@ export default function Home() {
   const [patientQuery, setPatientQuery] = useState('');
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<{ email: string; name: string } | null>(null);
+  const [choosing, setChoosing] = useState(false); // true = buscando otro paciente con "Cambiar"
 
   const [patientSaved, setPatientSaved] = useState(false);
   const [confirmingSend, setConfirmingSend] = useState(false);
@@ -171,6 +172,7 @@ export default function Home() {
     setPatientSaved(false);
     setConfirmingSend(false);
     setLocked(false);
+    setChoosing(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -197,6 +199,7 @@ export default function Home() {
     setPatientSaved(false);
     setConfirmingSend(false);
     setLocked(false);
+    setChoosing(false);
     const reader = new FileReader();
     reader.onload = (e) => setPreview(e.target?.result as string);
     reader.readAsDataURL(f);
@@ -425,14 +428,16 @@ export default function Home() {
                   <div className="result-section-head">
                     <div className="scan-section-title"><IconSend /> Enviar análisis a tu paciente</div>
                     {/* Una vez enviado ya no se puede cambiar el paciente */}
-                    {selectedPatient && !locked && !confirmingSend && (
-                      <button
-                        type="button"
-                        className="link-btn"
-                        onClick={() => { setSelectedPatient(null); setPatientQuery(''); setPatientSaved(false); }}
-                      >
-                        Cambiar
-                      </button>
+                    {selectedPatient && !confirmingSend && (
+                      choosing ? (
+                        <button type="button" className="link-btn" onClick={() => setChoosing(false)}>
+                          Cancelar
+                        </button>
+                      ) : (
+                        <button type="button" className="link-btn" onClick={() => { setChoosing(true); setPatientQuery(''); }}>
+                          Cambiar
+                        </button>
+                      )
                     )}
                   </div>
 
@@ -446,7 +451,7 @@ export default function Home() {
                         <button className="btn-primary" onClick={handleConfirmSend}>Confirmar envío</button>
                       </div>
                     </div>
-                  ) : !selectedPatient ? (
+                    ) : !selectedPatient || choosing ? (
                     <div className="searchable-select">
                       <input
                         value={patientQuery}
@@ -469,6 +474,8 @@ export default function Home() {
                                   setPatientQuery(p.name);
                                   setShowPatientDropdown(false);
                                   setPatientSaved(false);
+                                  setLocked(false);
+                                  setChoosing(false);
                                 }}
                               >
                                 {p.name}

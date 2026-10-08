@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 
+
 interface StoredUser {
   name: string;
   email: string;
@@ -26,6 +27,37 @@ interface Conversation {
   name: string;
   specialty?: string;
   photoDataUrl?: string;
+}
+
+// Saca tildes y pasa a minúscula, para que "pe" encuentre "Pérez"
+function normalize(s: string) {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+// ¿Alguna palabra (nombre o apellido) empieza con lo que escribiste?
+function matchesWordStart(text: string, query: string): boolean {
+  const q = normalize(query.trim());
+  if (!q) return true;
+  return normalize(text).split(' ').some((word) => word.startsWith(q));
+}
+
+// Muestra el nombre completo, con en negrita solo el principio de la palabra que coincide
+function HighlightMatch({ text, query }: { text: string; query: string }) {
+  const q = normalize(query.trim());
+  if (!q) return <>{text}</>;
+  const t = normalize(text);
+  let idx = -1;
+  for (let i = 0; i < t.length; i++) {
+    if ((i === 0 || t[i - 1] === ' ') && t.startsWith(q, i)) { idx = i; break; }
+  }
+  if (idx === -1) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <strong className="search-hit">{text.slice(idx, idx + q.length)}</strong>
+      {text.slice(idx + q.length)}
+    </>
+  );
 }
 
 const CHAT_PREFIX = 'melascan_chat_';
@@ -229,11 +261,7 @@ export default function Chat() {
   conversations = conversations.filter((c) => !isHidden(c.id, me.email));
 
   // Buscador: médico busca pacientes, paciente busca médicos
-  const filteredConversations = conversations.filter((c) => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return true;
-    return c.name.toLowerCase().includes(q);
-  });
+  const filteredConversations = conversations.filter((c) => matchesWordStart(c.name, searchQuery));
 
   const selected = conversations.find((c) => c.id === selectedId) ?? null;
   const messages = selected ? getVisibleMessages(selected.id, me.email) : [];
@@ -332,7 +360,9 @@ export default function Chat() {
                     >
                       <Avatar photoDataUrl={c.photoDataUrl} />
                       <div className="conv-row-main">
-                        <span className="conv-row-name">{c.name}</span>
+                      <span className={`conv-row-name${searchQuery.trim() ? ' searching' : ''}`}>
+                          <HighlightMatch text={c.name} query={searchQuery} />
+                        </span>
                         <span className="conv-row-preview">
                           {lastMessage ? lastMessage.text : 'Sin mensajes todavía'}
                         </span>
