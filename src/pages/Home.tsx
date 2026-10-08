@@ -32,6 +32,34 @@ interface Session {
   role: 'medico' | 'paciente';
 }
 
+function normalize(s: string) {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+function matchesWordStart(text: string, query: string): boolean {
+  const q = normalize(query.trim());
+  if (!q) return true;
+  return normalize(text).split(' ').some((word) => word.startsWith(q));
+}
+
+function HighlightMatch({ text, query }: { text: string; query: string }) {
+  const q = normalize(query.trim());
+  if (!q) return <>{text}</>;
+  const t = normalize(text);
+  let idx = -1;
+  for (let i = 0; i < t.length; i++) {
+    if ((i === 0 || t[i - 1] === ' ') && t.startsWith(q, i)) { idx = i; break; }
+  }
+  if (idx === -1) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <strong className="search-hit">{text.slice(idx, idx + q.length)}</strong>
+      {text.slice(idx + q.length)}
+    </>
+  );
+}
+
 const ABCDE_CRITERIA = [
   { letter: 'A', title: 'Asimetría' },
   { letter: 'B', title: 'Bordes' },
@@ -149,11 +177,7 @@ export default function Home() {
 
   const allPatients = users.filter((u) => u.role === 'paciente').sort((a, b) => a.name.localeCompare(b.name));
 
-  const filteredPatients = allPatients.filter((p) => {
-    const q = patientQuery.trim().toLowerCase();
-    if (!q) return true;
-    return p.name.toLowerCase().split(' ').some((word) => word.startsWith(q));
-  });
+  const filteredPatients = allPatients.filter((p) => matchesWordStart(p.name, patientQuery));
 
   // Deja la pantalla como recién entrada (sin foto ni resultado)
   const resetScanner = () => {
@@ -478,7 +502,7 @@ export default function Home() {
                                   setChoosing(false);
                                 }}
                               >
-                                {p.name}
+                                <HighlightMatch text={p.name} query={patientQuery} />
                               </button>
                             ))
                           )}

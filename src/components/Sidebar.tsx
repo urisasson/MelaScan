@@ -13,13 +13,38 @@ interface StoredUser {
   assignedDoctorEmails?: string[];
 }
 
-// Soporta cuentas viejas (un solo médico) y nuevas (varios médicos)
+function normalize(s: string) {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+function matchesWordStart(text: string, query: string): boolean {
+  const q = normalize(query.trim());
+  if (!q) return true;
+  return normalize(text).split(' ').some((word) => word.startsWith(q));
+}
+
+function HighlightMatch({ text, query }: { text: string; query: string }) {
+  const q = normalize(query.trim());
+  if (!q) return <>{text}</>;
+  const t = normalize(text);
+  let idx = -1;
+  for (let i = 0; i < t.length; i++) {
+    if ((i === 0 || t[i - 1] === ' ') && t.startsWith(q, i)) { idx = i; break; }
+  }
+  if (idx === -1) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <strong className="search-hit">{text.slice(idx, idx + q.length)}</strong>
+      {text.slice(idx + q.length)}
+    </>
+  );
+}
+
 function getAssignedDoctors(u: StoredUser): string[] {
   if (u.assignedDoctorEmails) return u.assignedDoctorEmails;
   return u.assignedDoctorEmail ? [u.assignedDoctorEmail] : [];
 }
 
-// ¿Hay algún chat visible con mensajes sin leer?
 function hasUnreadChats(me: StoredUser): boolean {
   const prefix = 'melascan_chat_';
   for (let i = 0; i < localStorage.length; i++) {
@@ -131,13 +156,9 @@ function EditDoctorsModal({
 
   // No se ofrecen los médicos que ya están en la lista
   const availableDoctors = doctors
-    .filter((d) => !draftEmails.includes(d.email))
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .filter((d) => {
-      const q = query.trim().toLowerCase();
-      if (!q) return true;
-      return d.name.toLowerCase().split(' ').some((word) => word.startsWith(q));
-    });
+  .filter((d) => !draftEmails.includes(d.email))
+  .sort((a, b) => a.name.localeCompare(b.name))
+  .filter((d) => matchesWordStart(d.name, query));
 
   const hasChanges =
     draftEmails.length !== initialEmails.length || draftEmails.some((e) => !initialEmails.includes(e));
@@ -224,7 +245,7 @@ function EditDoctorsModal({
                           setQuery('');
                         }}
                       >
-                        {d.name}
+                        <HighlightMatch text={d.name} query={query} />
                       </button>
                     ))
                   )}

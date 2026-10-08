@@ -17,6 +17,34 @@ interface Props {
   onSwitchToLogin: () => void;
 }
 
+function normalize(s: string) {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+function matchesWordStart(text: string, query: string): boolean {
+  const q = normalize(query.trim());
+  if (!q) return true;
+  return normalize(text).split(' ').some((word) => word.startsWith(q));
+}
+
+function HighlightMatch({ text, query }: { text: string; query: string }) {
+  const q = normalize(query.trim());
+  if (!q) return <>{text}</>;
+  const t = normalize(text);
+  let idx = -1;
+  for (let i = 0; i < t.length; i++) {
+    if ((i === 0 || t[i - 1] === ' ') && t.startsWith(q, i)) { idx = i; break; }
+  }
+  if (idx === -1) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <strong className="search-hit">{text.slice(idx, idx + q.length)}</strong>
+      {text.slice(idx + q.length)}
+    </>
+  );
+}
+
 function PatientIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
@@ -103,12 +131,9 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
     .filter((d): d is StoredUser => !!d);
 
   // Solo se ofrecen los médicos que todavía no elegiste
-  const filteredDoctors = doctors.filter((d) => {
-    if (assignedDoctorEmails.includes(d.email)) return false;
-    const q = doctorQuery.trim().toLowerCase();
-    if (!q) return true;
-    return d.name.toLowerCase().split(' ').some((word) => word.startsWith(q));
-  });
+  const filteredDoctors = doctors.filter(
+    (d) => !assignedDoctorEmails.includes(d.email) && matchesWordStart(d.name, doctorQuery)
+  );
 
   const openDropdown = () => {
     if (blurTimeoutRef.current) {
@@ -256,7 +281,7 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
                               setDoctorQuery('');
                             }}
                           >
-                            {d.name}
+                            <HighlightMatch text={d.name} query={doctorQuery} />
                           </button>
                         ))
                       )}
