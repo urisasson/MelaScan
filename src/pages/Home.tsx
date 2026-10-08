@@ -127,7 +127,7 @@ export default function Home() {
   const [hasResult, setHasResult] = useState(false);
   const [showTips, setShowTips] = useState(false);
   const [description, setDescription] = useState('');
-  const [, setDescriptionSaved] = useState(false);
+  const [descriptionSaved, setDescriptionSaved] = useState(false);
   const [recordId, setRecordId] = useState<string | null>(null);
 
   const [patientQuery, setPatientQuery] = useState('');
@@ -343,7 +343,7 @@ export default function Home() {
               disabled={!file || analyzing || hasResult}
               onClick={handleAnalyze}
             >
-              {analyzing ? 'Analizando…' : hasResult ? 'Análisis guardado ✓' : 'Analizar lunar'}
+              {analyzing ? 'Analizando…' : hasResult ? 'Analizar lunar' : 'Analizar lunar'}
             </button>
 
             <button className="collapsible-toggle-v2" onClick={() => setShowTips((s) => !s)}>
@@ -417,7 +417,7 @@ export default function Home() {
                       onChange={(e) => { setDescription(e.target.value); setDescriptionSaved(false); }}
                       placeholder="Escriba sus anotaciones sobre el análisis"
                     />
-                      <button className="btn-primary btn-sm" onClick={handleSaveDescription}>Guardar</button>
+                      <button className="btn-primary btn-sm" onClick={handleSaveDescription} disabled={descriptionSaved}>Guardar</button>
                   </div>
                 </div>
 

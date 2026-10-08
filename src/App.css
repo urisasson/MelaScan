@@ -789,3 +789,34 @@ button.back-link:hover {
 .result-section-head .link-btn { min-width: 84px; text-align: center; }
 .btn-save-outline { min-width: 84px; }
 .patient-line-actions .status-done:last-child { min-width: 84px; text-align: center; }
+
+/* Hover de filas en Historial / Mis Análisis: fondo blanco + borde fino redondeado */
+.historial-table { border-collapse: separate; border-spacing: 0; }
+.historial-table td {
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid var(--line);
+}
+.historial-table td:first-child { border-left: 1px solid transparent; }
+.historial-table td:last-child { border-right: 1px solid transparent; }
+
+.historial-table .clickable-row:hover { background: transparent; }
+.historial-table .clickable-row:hover td {
+  background: var(--surface);
+  border-top: 1px solid var(--accent);
+  border-bottom: 1px solid var(--accent);
+}
+.historial-table .clickable-row:hover td:first-child {
+  border-left: 1px solid var(--accent);
+  border-radius: 10px 0 0 10px;
+}
+.historial-table .clickable-row:hover td:last-child {
+  border-right: 1px solid var(--accent);
+  border-radius: 0 10px 10px 0;
+}
+/* La línea gris de la fila de arriba se oculta para que no quede doble borde */
+.historial-table tr:has(+ .clickable-row:hover) td { border-bottom-color: transparent; }
+
+/* Letras que coinciden con la búsqueda, en negrita */
+.search-hit { font-weight: 800; }
+/* En Chats los nombres ya son negrita: mientras buscás se afinan para que se note la parte marcada */
+.conv-row-name.searching { font-weight: 500; }  

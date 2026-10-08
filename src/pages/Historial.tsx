@@ -150,7 +150,7 @@ function AnalysisDetail({ recordId, onBack }: { recordId: string; onBack: () => 
   const record = readHistorial().find((r) => r.id === recordId);
 
   const [description, setDescription] = useState(record?.description ?? '');
-  const [, setDescriptionSaved] = useState(false);
+  const [descriptionSaved, setDescriptionSaved] = useState(false);
   const [showTips, setShowTips] = useState(false);
   const [chosenPatient, setChosenPatient] = useState<SentEntry | null>(null);
   // Lo que hiciste con el paciente recién elegido (arranca en cero, como uno nuevo)
@@ -328,7 +328,7 @@ function AnalysisDetail({ recordId, onBack }: { recordId: string; onBack: () => 
                 onChange={(e) => { setDescription(e.target.value); setDescriptionSaved(false); }}
                 placeholder="Escriba sus anotaciones sobre el análisis"
               />
-                <button className="btn-primary btn-sm" onClick={handleSaveDescription}>Guardar</button>
+                <button className="btn-primary btn-sm" onClick={handleSaveDescription} disabled={descriptionSaved}>Guardar</button>
             </div>
           </div>
 
