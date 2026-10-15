@@ -85,6 +85,17 @@ function IconArrowLeft() {
     </svg>
   );
 }
+
+function IconInfo() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+  );
+}
+
 function IconUser() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -199,9 +210,9 @@ export default function MisAnalisis() {
                 </ul>
               </div>
 
-              <div className="disclaimer" style={{ marginTop: 6 }}>
-                Este resultado es orientativo y no reemplaza el diagnóstico médico ni la biopsia.
-                Ante cualquier duda, consultá con tu médico.
+              <div className="disclaimer-note">
+                <IconInfo />
+                <p>Este resultado es orientativo y no reemplaza el diagnóstico médico ni la biopsia. Ante cualquier duda, consultá con tu médico.</p>
               </div>
             </div>
           </div>

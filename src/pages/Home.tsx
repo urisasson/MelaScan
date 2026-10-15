@@ -527,10 +527,6 @@ export default function Home() {
                     </div>
                   )}
                 </div>
-
-                <div className="disclaimer" style={{ marginTop: 6 }}>
-                  Este resultado es orientativo y no reemplaza el diagnóstico médico ni la biopsia.
-                </div>
               </>
             )}
           </div>

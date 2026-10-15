@@ -32,6 +32,13 @@ const FAQS = [
   },
 ];
 
+const STATS = [
+  { value: '93%', title: 'Originado por la Luz UV', text: 'Casi el 93% de los casos son causados por la luz UV y la exposición solar.', accent: true },
+  { value: '95%', title: 'Supervivencia General', text: 'Tasa de supervivencia a 5 años, gracias a los avances en tratamientos médicos.', accent: false },
+  { value: '>99%', title: 'Diagnóstico Localizado', text: 'Si se mantiene solo en la piel. Cae al 35% si el cáncer se expande por el resto del cuerpo.', accent: true },
+  { value: '+46%', title: 'Aumento de Casos', text: 'Incremento de nuevos melanomas invasivos diagnosticados al año en los últimos 15 años.', accent: false },
+];
+
 function LogoMark() {
   return <img src="/logo.png" alt="MelaScan" className="logo-badge-img" />;
 }
@@ -169,6 +176,21 @@ export default function Inicio() {
           </div>
         </div>
       </section>
+
+      <section className="stats-band">
+        <div className="stats-inner">
+          <h2>Estadísticas Clave del Melanoma</h2>
+          <div className="stats-grid-home">
+            {STATS.map((s) => (
+              <div className="stat-card-home" key={s.title}>
+                <span className={`stat-number${s.accent ? ' accent' : ''}`}>{s.value}</span>
+                <h4>{s.title}</h4>
+                <p>{s.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section> 
 
       <footer className="site-footer">
         <div className="footer-inner">
