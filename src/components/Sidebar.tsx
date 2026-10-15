@@ -122,20 +122,24 @@ const NAV_PACIENTE = [
   { label: 'Chats', path: '/chats', icon: <IconChat /> },
 ];
 
-// Ventana "Editar médicos" (solo pacientes). Los cambios se aplican recién al tocar "Guardar".
-function EditDoctorsModal({
-  patientEmail,
+// Ventana "Editar pacientes" (solo médicos). Los cambios se aplican recién al tocar "Guardar".
+function EditPatientsModal({
+  doctorEmail,
   onClose,
   onSaved,
 }: {
-  patientEmail: string;
+  doctorEmail: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const usersRaw = localStorage.getItem('melascan_users');
   const users: StoredUser[] = usersRaw ? JSON.parse(usersRaw) : [];
-  const me = users.find((u) => u.email === patientEmail);
-  const initialEmails = me ? getAssignedDoctors(me) : [];
+  const patients = users.filter((u) => u.role === 'paciente');
+
+  // Pacientes asignados = los que tienen a este médico en su lista
+  const initialEmails = patients
+    .filter((p) => getAssignedDoctors(p).includes(doctorEmail))
+    .map((p) => p.email);
 
   const [draftEmails, setDraftEmails] = useState<string[]>(initialEmails);
   const [query, setQuery] = useState('');
@@ -147,18 +151,15 @@ function EditDoctorsModal({
     return () => { document.body.style.overflow = ''; };
   }, []);
 
-  if (!me) return null;
+  const chosenPatients = draftEmails
+    .map((email) => patients.find((p) => p.email === email))
+    .filter((p): p is StoredUser => !!p);
 
-  const doctors = users.filter((u) => u.role === 'medico');
-  const chosenDoctors = draftEmails
-    .map((email) => doctors.find((d) => d.email === email))
-    .filter((d): d is StoredUser => !!d);
-
-  // No se ofrecen los médicos que ya están en la lista
-  const availableDoctors = doctors
-  .filter((d) => !draftEmails.includes(d.email))
-  .sort((a, b) => a.name.localeCompare(b.name))
-  .filter((d) => matchesWordStart(d.name, query));
+  // No se ofrecen los pacientes que ya están en la lista
+  const availablePatients = patients
+    .filter((p) => !draftEmails.includes(p.email))
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .filter((p) => matchesWordStart(p.name, query));
 
   const hasChanges =
     draftEmails.length !== initialEmails.length || draftEmails.some((e) => !initialEmails.includes(e));
@@ -167,20 +168,34 @@ function EditDoctorsModal({
     const removed = initialEmails.filter((e) => !draftEmails.includes(e));
     const added = draftEmails.filter((e) => !initialEmails.includes(e));
 
-    removed.forEach((d) => {
-      const chatId = `${d}__${patientEmail}`;
-      // Si el chat todavía no tenía mensajes, se crea vacío para que el médico lo siga viendo en su lista
+    const updated = users.map((u) => {
+      if (u.role !== 'paciente') return u;
+      const assigned = getAssignedDoctors(u);
+      if (added.includes(u.email) && !assigned.includes(doctorEmail)) {
+        return { ...u, assignedDoctorEmails: [...assigned, doctorEmail] };
+      }
+      if (removed.includes(u.email)) {
+        return { ...u, assignedDoctorEmails: assigned.filter((d) => d !== doctorEmail) };
+      }
+      return u;
+    });
+    localStorage.setItem('melascan_users', JSON.stringify(updated));
+
+    // Paciente agregado: el chat aparece para los dos (aunque alguno lo hubiera eliminado antes)
+    added.forEach((p) => {
+      const chatId = `${doctorEmail}__${p}`;
+      localStorage.removeItem(`melascan_hidden_${chatId}_${p}`);
+      localStorage.removeItem(`melascan_hidden_${chatId}_${doctorEmail}`);
+    });
+
+    // Paciente quitado: el chat se conserva para los dos (si no tenía mensajes, se crea vacío)
+    removed.forEach((p) => {
+      const chatId = `${doctorEmail}__${p}`;
       if (!localStorage.getItem(`melascan_chat_${chatId}`)) {
         localStorage.setItem(`melascan_chat_${chatId}`, '[]');
       }
-      // Al paciente se le oculta
-      localStorage.setItem(`melascan_hidden_${chatId}_${patientEmail}`, '1');
     });
-    // Médico agregado: el chat vuelve a estar visible
-    added.forEach((d) => localStorage.removeItem(`melascan_hidden_${d}__${patientEmail}_${patientEmail}`));
 
-    const updated = users.map((u) => (u.email === patientEmail ? { ...u, assignedDoctorEmails: draftEmails } : u));
-    localStorage.setItem('melascan_users', JSON.stringify(updated));
     window.dispatchEvent(new Event('storage'));
     onSaved();
   };
@@ -195,22 +210,22 @@ function EditDoctorsModal({
       <div className="modal-backdrop">
         <div className="modal-card" onClick={(e) => e.stopPropagation()}>
           <button className="modal-close" onClick={handleCloseClick} aria-label="Cerrar">✕</button>
-          <h2>Edita tus médicos asignados</h2>
+          <h2>Edita tus pacientes asignados</h2>
 
           <div className="field">
-            <span>Médicos asignados</span>
+            <span>Pacientes asignados</span>
             <div className="chips-input-box chips-box-static">
-              {chosenDoctors.length === 0 ? (
-                <span className="form-hint">No tenés médicos asignados.</span>
+              {chosenPatients.length === 0 ? (
+                <span className="form-hint">No tenés pacientes asignados.</span>
               ) : (
-                chosenDoctors.map((d) => (
-                  <span className="doctor-chip" key={d.email}>
-                    {d.name}
+                chosenPatients.map((p) => (
+                  <span className="doctor-chip" key={p.email}>
+                    {p.name}
                     <button
                       type="button"
                       className="chip-remove"
-                      aria-label={`Quitar a ${d.name}`}
-                      onClick={() => setDraftEmails((prev) => prev.filter((x) => x !== d.email))}
+                      aria-label={`Quitar a ${p.name}`}
+                      onClick={() => setDraftEmails((prev) => prev.filter((x) => x !== p.email))}
                     >
                       ✕
                     </button>
@@ -221,31 +236,31 @@ function EditDoctorsModal({
           </div>
 
           <div className="field">
-            <span>Agregar médico</span>
+            <span>Agregar paciente</span>
             <div className="searchable-select">
               <input
                 value={query}
                 onChange={(e) => { setQuery(e.target.value); setShowDropdown(true); }}
                 onFocus={() => setShowDropdown(true)}
                 onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
-                placeholder="Buscar por nombre para agregar a un médico"
+                placeholder="Buscar por nombre para agregar a un paciente"
               />
               {showDropdown && (
                 <div className="searchable-dropdown">
-                  {availableDoctors.length === 0 ? (
+                  {availablePatients.length === 0 ? (
                     <div className="searchable-empty">Sin resultados</div>
                   ) : (
-                    availableDoctors.map((d) => (
+                    availablePatients.map((p) => (
                       <button
-                        key={d.email}
+                        key={p.email}
                         type="button"
                         onMouseDown={(ev) => {
                           ev.preventDefault();
-                          setDraftEmails((prev) => [...prev, d.email]);
+                          setDraftEmails((prev) => [...prev, p.email]);
                           setQuery('');
                         }}
                       >
-                        <HighlightMatch text={d.name} query={query} />
+                        <HighlightMatch text={p.name} query={query} />
                       </button>
                     ))
                   )}
@@ -285,7 +300,7 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [editDoctorsOpen, setEditDoctorsOpen] = useState(false);
+  const [editPatientsOpen, setEditPatientsOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [, setTick] = useState(0);
@@ -414,9 +429,9 @@ export default function Sidebar() {
                   style={{ display: 'none' }}
                 />
               </label>
-              {currentUser?.role === 'paciente' && (
-                <button type="button" onClick={() => { setMenuOpen(false); setEditDoctorsOpen(true); }}>
-                  Editar médicos
+              {currentUser?.role === 'medico' && (
+                <button type="button" onClick={() => { setMenuOpen(false); setEditPatientsOpen(true); }}>
+                  Editar pacientes
                 </button>
               )}
               <div className="profile-menu-divider" />
@@ -427,11 +442,11 @@ export default function Sidebar() {
         )}
       </div>
 
-      {editDoctorsOpen && currentUser && (
-        <EditDoctorsModal
-          patientEmail={currentUser.email}
-          onClose={() => setEditDoctorsOpen(false)}
-          onSaved={() => { setEditDoctorsOpen(false); showToast('Cambios guardados'); }}
+      {editPatientsOpen && currentUser && (
+        <EditPatientsModal
+          doctorEmail={currentUser.email}
+          onClose={() => setEditPatientsOpen(false)}
+          onSaved={() => { setEditPatientsOpen(false); showToast('Cambios guardados'); }}
         />
       )}
 
