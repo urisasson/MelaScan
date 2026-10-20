@@ -11,6 +11,7 @@ interface StoredUser {
   assignedDoctorEmail?: string;
   assignedDoctorEmails?: string[];
   specialty?: string;
+  dni?: string;
   photoDataUrl?: string;
 }
 
@@ -175,11 +176,53 @@ function IconTrash() {
   );
 }
 
+function IconMail() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <polyline points="22 6 12 13 2 6" />
+    </svg>
+  );
+}
+
+function IconIdCard() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <circle cx="8" cy="12" r="2" />
+      <line x1="13" y1="10" x2="18" y2="10" />
+      <line x1="13" y1="14" x2="18" y2="14" />
+    </svg>
+  );
+}
+
+function IconUser() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+    </svg>
+  );
+}
+
+function IconStethoscope() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 2v2" />
+      <path d="M5 2v2" />
+      <path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1" />
+      <path d="M8 15a6 6 0 0 0 12 0v-3" />
+      <circle cx="20" cy="10" r="2" />
+    </svg>
+  );
+}
+
 export default function Chat() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [, setTick] = useState(0);
 
   const sessionRaw = localStorage.getItem('melascan_session');
@@ -380,11 +423,13 @@ export default function Chat() {
             ) : (
               <>
                 <div className="chat-header">
-                  <Avatar photoDataUrl={selected.photoDataUrl} />
-                  <div className="chat-header-text">
-                    <span className="chat-header-name">{selected.name}</span>
-                    {selected.specialty && <span className="chat-header-specialty">{selected.specialty}</span>}
-                  </div>
+                <button type="button" className="chat-header-profile" onClick={() => setProfileOpen(true)}>
+                    <Avatar photoDataUrl={selected.photoDataUrl} />
+                    <div className="chat-header-text">
+                      <span className="chat-header-name">{selected.name}</span>
+                      {selected.specialty && <span className="chat-header-specialty">{selected.specialty}</span>}
+                    </div>
+                  </button>
 
                   <div className="chat-menu-wrap">
                     <button
@@ -433,6 +478,61 @@ export default function Chat() {
             )}
           </div>
         </div>
+        {profileOpen && selected && (() => {
+          const other = users.find((u) => u.email === selected.otherEmail);
+          const viewingPatient = me.role === 'medico';
+          // DNI con puntos: 11111111 -> 11.111.111
+          const dniText = other?.dni ? other.dni.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '—';
+          return (
+            <div className="modal-backdrop confirm-backdrop" onClick={() => setProfileOpen(false)}>
+              <div
+                className={`modal-card profile-card${viewingPatient ? '' : ' is-doctor'}`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button className="modal-close" onClick={() => setProfileOpen(false)} aria-label="Cerrar">✕</button>
+
+                <div className="profile-card-header">
+                  <div className="profile-card-avatar">
+                    {other?.photoDataUrl ? (
+                      <img src={other.photoDataUrl} alt="Foto de perfil" />
+                    ) : (
+                      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="8" r="4" />
+                      <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+                    </svg>
+                    )}
+                  </div>
+                  <div>
+                    <h4 className="profile-card-name">{selected.name}</h4>
+                    {!viewingPatient && <span className="profile-card-sub">{other?.specialty || 'Especialidad'}</span>}
+                  </div>
+                </div>
+
+                <div className="profile-field">
+                  <span className="profile-field-label">Nombre Completo</span>
+                  <div className="profile-field-box"><IconUser /><span>{selected.name}</span></div>
+                </div>
+
+                <div className="profile-field">
+                  <span className="profile-field-label">Correo Electrónico</span>
+                  <div className="profile-field-box"><IconMail /><span>{selected.otherEmail}</span></div>
+                </div>
+
+                {viewingPatient ? (
+                  <div className="profile-field">
+                    <span className="profile-field-label">DNI</span>
+                    <div className="profile-field-box"><IconIdCard /><span>{dniText}</span></div>
+                  </div>
+                ) : (
+                  <div className="profile-field">
+                    <span className="profile-field-label">Especialidad</span>
+                    <div className="profile-field-box"><IconStethoscope /><span>{other?.specialty || '—'}</span></div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </main>
     </div>
   );

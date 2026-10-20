@@ -8,6 +8,8 @@ interface StoredUser {
   password: string;
   role: 'medico' | 'paciente';
   specialty?: string;
+  dni?: string;
+  assignedDoctorEmail?: string;
   assignedDoctorEmails?: string[];
 }
 
@@ -17,16 +19,19 @@ interface Props {
   onSwitchToLogin: () => void;
 }
 
+// Saca tildes y pasa a minúscula, para que "pe" encuentre "Pérez"
 function normalize(s: string) {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
+// ¿Alguna palabra (nombre o apellido) empieza con lo que escribiste?
 function matchesWordStart(text: string, query: string): boolean {
   const q = normalize(query.trim());
   if (!q) return true;
   return normalize(text).split(' ').some((word) => word.startsWith(q));
 }
 
+// Muestra el nombre completo, con en negrita solo el principio de la palabra que coincide
 function HighlightMatch({ text, query }: { text: string; query: string }) {
   const q = normalize(query.trim());
   if (!q) return <>{text}</>;
@@ -43,6 +48,11 @@ function HighlightMatch({ text, query }: { text: string; query: string }) {
       {text.slice(idx + q.length)}
     </>
   );
+}
+
+function getAssignedDoctors(u: StoredUser): string[] {
+  if (u.assignedDoctorEmails) return u.assignedDoctorEmails;
+  return u.assignedDoctorEmail ? [u.assignedDoctorEmail] : [];
 }
 
 function PatientIcon() {
@@ -106,13 +116,16 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
   const setPassword = role === 'medico' ? setPasswordMedico : setPasswordPaciente;
   const [showPassword, setShowPassword] = useState(false);
 
+  // Solo médico
   const [specialty, setSpecialty] = useState('');
-
-  const [assignedDoctorEmails, setAssignedDoctorEmails] = useState<string[]>([]);
-  const [doctorQuery, setDoctorQuery] = useState('');
-  const [showDoctorDropdown, setShowDoctorDropdown] = useState(false);
-  const doctorInputRef = useRef<HTMLInputElement>(null);
+  const [myPatientEmails, setMyPatientEmails] = useState<string[]>([]);
+  const [patientQuery, setPatientQuery] = useState('');
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+  const patientInputRef = useRef<HTMLInputElement>(null);
   const blurTimeoutRef = useRef<number | null>(null);
+
+  // Solo paciente
+  const [dni, setDni] = useState('');
 
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -124,15 +137,15 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
 
   const raw = localStorage.getItem('melascan_users');
   const users: StoredUser[] = raw ? JSON.parse(raw) : [];
-  const doctors = users.filter((u) => u.role === 'medico').sort((a, b) => a.name.localeCompare(b.name));
+  const patients = users.filter((u) => u.role === 'paciente').sort((a, b) => a.name.localeCompare(b.name));
 
-  const chosenDoctors = assignedDoctorEmails
-    .map((doctorEmail) => doctors.find((d) => d.email === doctorEmail))
-    .filter((d): d is StoredUser => !!d);
+  const chosenPatients = myPatientEmails
+    .map((patientEmail) => patients.find((p) => p.email === patientEmail))
+    .filter((p): p is StoredUser => !!p);
 
-  // Solo se ofrecen los médicos que todavía no elegiste
-  const filteredDoctors = doctors.filter(
-    (d) => !assignedDoctorEmails.includes(d.email) && matchesWordStart(d.name, doctorQuery)
+  // Solo se ofrecen los pacientes que todavía no elegiste
+  const filteredPatients = patients.filter(
+    (p) => !myPatientEmails.includes(p.email) && matchesWordStart(p.name, patientQuery)
   );
 
   const openDropdown = () => {
@@ -140,11 +153,11 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
       clearTimeout(blurTimeoutRef.current);
       blurTimeoutRef.current = null;
     }
-    setShowDoctorDropdown(true);
+    setShowPatientDropdown(true);
   };
 
   const closeDropdownSoon = () => {
-    blurTimeoutRef.current = window.setTimeout(() => setShowDoctorDropdown(false), 150);
+    blurTimeoutRef.current = window.setTimeout(() => setShowPatientDropdown(false), 150);
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -159,21 +172,27 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
       return;
     }
 
-    if (role === 'paciente' && assignedDoctorEmails.length === 0) {
-      setError('Elegí al menos un médico asignado de la lista.');
+    if (role === 'paciente' && !/^\d{8}$/.test(dni)) {
+      setError('El DNI tiene que tener 8 números.');
       return;
     }
 
-    const newUser: StoredUser = {
-      name,
-      email,
-      password,
-      role,
-      specialty: role === 'medico' ? specialty : undefined,
-      assignedDoctorEmails: role === 'paciente' ? assignedDoctorEmails : undefined,
-    };
+    const newUser: StoredUser =
+      role === 'medico'
+        ? { name, email, password, role, specialty }
+        : { name, email, password, role, dni, assignedDoctorEmails: [] };
 
-    localStorage.setItem('melascan_users', JSON.stringify([...users, newUser]));
+    // Si es médico, los pacientes que eligió quedan asignados a él (y les aparece el chat)
+    const updatedUsers =
+      role === 'medico'
+        ? users.map((u) => {
+            if (!myPatientEmails.includes(u.email)) return u;
+            const assigned = getAssignedDoctors(u);
+            return assigned.includes(email) ? u : { ...u, assignedDoctorEmails: [...assigned, email] };
+          })
+        : users;
+
+    localStorage.setItem('melascan_users', JSON.stringify([...updatedUsers, newUser]));
     localStorage.setItem('melascan_session', JSON.stringify(newUser));
 
     navigate(role === 'medico' ? '/home' : '/mis-analisis');
@@ -223,73 +242,87 @@ export default function Register({ initialRole = 'paciente', onClose, onSwitchTo
           </label>
 
           {role === 'medico' ? (
+            <>
+              <label className="field">
+                <span>Especialidad</span>
+                <input
+                  value={specialty}
+                  onChange={(e) => setSpecialty(e.target.value)}
+                  required
+                />
+              </label>
+
+              <div className="field">
+                <span>Tus pacientes</span>
+                {patients.length === 0 ? (
+                  <p className="form-hint">Todavía no hay pacientes registrados. Podés agregarlos más adelante.</p>
+                ) : (
+                  <div className="searchable-select">
+                    <div className="chips-input-box" onClick={() => patientInputRef.current?.focus()}>
+                      {chosenPatients.map((p) => (
+                        <span className="doctor-chip" key={p.email}>
+                          {p.name}
+                          <button
+                            type="button"
+                            className="chip-remove"
+                            aria-label={`Quitar a ${p.name}`}
+                            onMouseDown={(ev) => ev.preventDefault()}
+                            onClick={(ev) => {
+                              ev.stopPropagation();
+                              setMyPatientEmails((prev) => prev.filter((x) => x !== p.email));
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                      <input
+                        ref={patientInputRef}
+                        value={patientQuery}
+                        onChange={(e) => { setPatientQuery(e.target.value); openDropdown(); }}
+                        onFocus={openDropdown}
+                        onBlur={closeDropdownSoon}
+                        onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+                        placeholder={chosenPatients.length === 0 ? 'Buscar paciente por nombre…' : ''}
+                      />
+                    </div>
+                    {showPatientDropdown && (
+                      <div className="searchable-dropdown">
+                        {filteredPatients.length === 0 ? (
+                          <div className="searchable-empty">Sin resultados</div>
+                        ) : (
+                          filteredPatients.map((p) => (
+                            <button
+                              key={p.email}
+                              type="button"
+                              onMouseDown={(ev) => {
+                                ev.preventDefault();
+                                setMyPatientEmails((prev) => [...prev, p.email]);
+                                setPatientQuery('');
+                              }}
+                            >
+                              <HighlightMatch text={p.name} query={patientQuery} />
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
             <label className="field">
-              <span>Especialidad</span>
+              <span>DNI</span>
               <input
-                value={specialty}
-                onChange={(e) => setSpecialty(e.target.value)}
+                value={dni}
+                onChange={(e) => setDni(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                inputMode="numeric"
+                minLength={8}
+                maxLength={8}
                 required
               />
             </label>
-          ) : (
-            <div className="field">
-              <span>Médicos asignados</span>
-              {doctors.length === 0 ? (
-                <p className="form-hint">Todavía no hay médicos registrados. Pedile a tu médico que se registre primero.</p>
-              ) : (
-                <div className="searchable-select">
-                  <div className="chips-input-box" onClick={() => doctorInputRef.current?.focus()}>
-                    {chosenDoctors.map((d) => (
-                      <span className="doctor-chip" key={d.email}>
-                        {d.name}
-                        <button
-                          type="button"
-                          className="chip-remove"
-                          aria-label={`Quitar a ${d.name}`}
-                          onMouseDown={(ev) => ev.preventDefault()}
-                          onClick={(ev) => {
-                            ev.stopPropagation();
-                            setAssignedDoctorEmails((prev) => prev.filter((x) => x !== d.email));
-                          }}
-                        >
-                          ✕
-                        </button>
-                      </span>
-                    ))}
-                    <input
-                      ref={doctorInputRef}
-                      value={doctorQuery}
-                      onChange={(e) => { setDoctorQuery(e.target.value); openDropdown(); }}
-                      onFocus={openDropdown}
-                      onBlur={closeDropdownSoon}
-                      onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
-                      placeholder={chosenDoctors.length === 0 ? 'Buscar médico por nombre…' : ''}
-                    />
-                  </div>
-                  {showDoctorDropdown && (
-                    <div className="searchable-dropdown">
-                      {filteredDoctors.length === 0 ? (
-                        <div className="searchable-empty">Sin resultados</div>
-                      ) : (
-                        filteredDoctors.map((d) => (
-                          <button
-                            key={d.email}
-                            type="button"
-                            onMouseDown={(ev) => {
-                              ev.preventDefault();
-                              setAssignedDoctorEmails((prev) => [...prev, d.email]);
-                              setDoctorQuery('');
-                            }}
-                          >
-                            <HighlightMatch text={d.name} query={doctorQuery} />
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
           )}
 
           {error && <p className="form-error">{error}</p>}

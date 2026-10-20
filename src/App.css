@@ -852,3 +852,52 @@ button.back-link:hover {
 }
 .disclaimer-note svg { color: var(--accent); flex-shrink: 0;}
 .disclaimer-note p { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+
+/* Nombre y foto del chat tocables: hover sutil (el nombre se pinta y la foto se marca) */
+.chat-header-profile {
+  display: flex; align-items: center; gap: 10px; background: none; border: none;
+  padding: 0; cursor: pointer; text-align: left; font-family: inherit;
+}
+.chat-header-profile .chat-header-name { transition: color 0.15s; }
+.chat-header-profile .avatar-img,
+.chat-header-profile .avatar-placeholder { transition: box-shadow 0.15s; }
+.chat-header-profile:hover .chat-header-name { color: var(--accent); }
+.chat-header-profile:hover .avatar-img,
+.chat-header-profile:hover .avatar-placeholder { box-shadow: 0 0 0 2px var(--accent-tint), 0 0 0 3px var(--accent); }
+
+/* Pop-up de Perfil */
+.profile-card { max-width: 400px; padding: 26px 24px 24px; }
+.profile-card-header {
+  display: flex; align-items: center; gap: 14px;
+  padding-bottom: 18px; margin-bottom: 16px; border-bottom: 1px solid var(--line);
+}
+.profile-card-avatar {
+  width: 58px; height: 58px; border-radius: 50%; flex-shrink: 0; overflow: hidden;
+  background: var(--line); color: var(--muted);
+  display: flex; align-items: center; justify-content: center;
+}
+.profile-card-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.profile-card-name { font-size: 18px; font-weight: 700; color: #14181A; }
+.profile-card-sub { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+
+.profile-field { margin-bottom: 12px; }
+.profile-field:last-child { margin-bottom: 0; }
+.profile-field-label { display: block; font-size: 11.5px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+.profile-field-box {
+  display: flex; align-items: center; gap: 10px; padding: 11px 14px;
+  background: #F7F9FA; border: 1px solid #E3E8EC; border-radius: 10px;
+  font-size: 13.5px; font-weight: 600; color: #14181A; word-break: break-all;
+}
+.profile-field-box svg { flex-shrink: 0; color: #14181A; }
+/* Perfil de un médico: íconos en verde agua, como en el Figma */
+.profile-card.is-doctor .profile-field-box svg { color: var(--accent); }
+
+/* Ventanas (Login / Register / etc.) más compactas para que entren sin scroll */
+.modal-card { padding: 24px 32px 22px; }
+.modal-card h2 { font-size: 21px; margin-bottom: 14px; }
+.modal-card .role-toggle { margin-bottom: 12px; }
+.modal-card .field { margin-bottom: 10px; gap: 5px; }
+.modal-card .field input { padding: 9px 12px; }
+.modal-card .chips-input-box { min-height: 40px; padding: 4px 8px; }
+.modal-card .auth-submit { padding: 11px 22px; margin-top: 4px; }
+.modal-card .auth-switch { margin-top: 14px; }
