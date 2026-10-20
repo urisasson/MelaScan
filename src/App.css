@@ -122,8 +122,7 @@ h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-w
 .purpose-solution { background: #E4F5EC; border-color: #BEE3CE; }
 .purpose-solution .purpose-icon { color: #3B9E68; }
 
-.features-band { width: 100%; background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.features-inner { max-width: 1400px; margin: 0 auto; padding: 44px 5%; }
+.features-band { width: 100%; background: #F4F7F8; }.features-inner { max-width: 1400px; margin: 0 auto; padding: 44px 5%; }
 .features-inner h2 { font-size: clamp(20px, 1.6vw, 24px); font-weight: 700; margin-bottom: 28px; text-align: center; color: #14181A; }
 .features-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
 .feature-card {
@@ -845,7 +844,6 @@ button.back-link:hover {
 .search-hit { font-weight: 800; }
 .conv-row-name.searching { font-weight: 500; }  
 
-/* Aviso para el paciente: recuadro suave con ícono (sin la barrita azul) */
 .disclaimer-note {
   display: flex; align-items: center; gap: 10px; margin-top: 6px;
   background: #F4F7F8; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
@@ -853,7 +851,6 @@ button.back-link:hover {
 .disclaimer-note svg { color: var(--accent); flex-shrink: 0;}
 .disclaimer-note p { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.55; }
 
-/* Nombre y foto del chat tocables: hover sutil (el nombre se pinta y la foto se marca) */
 .chat-header-profile {
   display: flex; align-items: center; gap: 10px; background: none; border: none;
   padding: 0; cursor: pointer; text-align: left; font-family: inherit;
@@ -865,7 +862,6 @@ button.back-link:hover {
 .chat-header-profile:hover .avatar-img,
 .chat-header-profile:hover .avatar-placeholder { box-shadow: 0 0 0 2px var(--accent-tint), 0 0 0 3px var(--accent); }
 
-/* Pop-up de Perfil */
 .profile-card { max-width: 400px; padding: 26px 24px 24px; }
 .profile-card-header {
   display: flex; align-items: center; gap: 14px;
@@ -889,10 +885,8 @@ button.back-link:hover {
   font-size: 13.5px; font-weight: 600; color: #14181A; word-break: break-all;
 }
 .profile-field-box svg { flex-shrink: 0; color: #14181A; }
-/* Perfil de un médico: íconos en verde agua, como en el Figma */
 .profile-card.is-doctor .profile-field-box svg { color: var(--accent); }
 
-/* Ventanas (Login / Register / etc.) más compactas para que entren sin scroll */
 .modal-card { padding: 24px 32px 22px; }
 .modal-card h2 { font-size: 21px; margin-bottom: 14px; }
 .modal-card .role-toggle { margin-bottom: 12px; }
