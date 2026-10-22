@@ -895,3 +895,31 @@ button.back-link:hover {
 .modal-card .chips-input-box { min-height: 40px; padding: 4px 8px; }
 .modal-card .auth-submit { padding: 11px 22px; margin-top: 4px; }
 .modal-card .auth-switch { margin-top: 14px; }
+
+/* ==================== Mi perfil ==================== */
+.profile-edit-btn {
+  position: absolute; top: 16px; right: 50px; width: 30px; height: 30px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: color 0.15s, border-color 0.15s;
+}
+.profile-edit-btn:hover { color: var(--accent); border-color: var(--accent); }
+.profile-photo-actions { display: flex; gap: 14px; margin-top: 6px; font-size: 12.5px; }
+.link-danger { color: var(--red); }
+
+.profile-field-box.editing { background: var(--surface); border-color: var(--accent); }
+.profile-field-box input {
+  flex: 1; min-width: 0; border: none; outline: none; background: none; padding: 0;
+  font-family: inherit; font-size: 13.5px; font-weight: 600; color: #14181A;
+}
+.profile-eye-btn {
+  margin-left: auto; background: none; border: none; color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; padding: 2px;
+}
+.profile-eye-btn:hover { color: var(--ink); }
+.profile-eye-btn svg { color: inherit; }
+.my-profile .auth-submit { margin-top: 16px; }
+.my-profile .form-error { margin: 12px 0 0; }
+.profile-edit-btn.active { background: var(--accent-tint); color: var(--accent); border-color: var(--accent); }
+
+/* Editar pacientes: el título un poco más abajo, separado de la ✕ */
+.edit-patients-card h2 { margin-top: 16px; }

@@ -6,22 +6,37 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 interface StoredUser {
   name: string;
   email: string;
+  password?: string;
   role: 'medico' | 'paciente';
   specialty?: string;
+  dni?: string;
   photoDataUrl?: string;
   assignedDoctorEmail?: string;
   assignedDoctorEmails?: string[];
 }
 
+interface HistorialRecord {
+  doctorEmail?: string;
+  doctorName?: string;
+  patientEmail?: string;
+  patientName?: string;
+  sentTo?: { email: string; name: string }[];
+  [key: string]: unknown;
+}
+
+// Saca tildes y pasa a minúscula, para que "pe" encuentre "Pérez"
 function normalize(s: string) {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
+
+// ¿Alguna palabra (nombre o apellido) empieza con lo que escribiste?
 function matchesWordStart(text: string, query: string): boolean {
   const q = normalize(query.trim());
   if (!q) return true;
   return normalize(text).split(' ').some((word) => word.startsWith(q));
 }
 
+// Muestra el nombre completo, con en negrita solo el principio de la palabra que coincide
 function HighlightMatch({ text, query }: { text: string; query: string }) {
   const q = normalize(query.trim());
   if (!q) return <>{text}</>;
@@ -40,11 +55,42 @@ function HighlightMatch({ text, query }: { text: string; query: string }) {
   );
 }
 
+// Soporta cuentas viejas (un solo médico) y nuevas (varios médicos)
 function getAssignedDoctors(u: StoredUser): string[] {
   if (u.assignedDoctorEmails) return u.assignedDoctorEmails;
   return u.assignedDoctorEmail ? [u.assignedDoctorEmail] : [];
 }
 
+// DNI con puntos: 11111111 -> 11.111.111
+function formatDni(dni: string) {
+  return dni ? dni.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '—';
+}
+
+// Si cambiás tu correo, se renombran los chats y sus marcas (leídos, ocultos, vaciados)
+function renameEmailInKeys(oldEmail: string, newEmail: string) {
+  const escaped = oldEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`(^|_)${escaped}(?=_|$)`, 'g');
+  const prefixes = ['melascan_chat_lastread_', 'melascan_hidden_', 'melascan_cleared_', 'melascan_chat_'];
+
+  const keys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k) keys.push(k);
+  }
+
+  keys.forEach((k) => {
+    const prefix = prefixes.find((p) => k.startsWith(p));
+    if (!prefix) return;
+    const rest = k.slice(prefix.length);
+    const newRest = rest.replace(re, (_m, before: string) => before + newEmail);
+    if (newRest === rest) return;
+    const value = localStorage.getItem(k);
+    if (value !== null) localStorage.setItem(prefix + newRest, value);
+    localStorage.removeItem(k);
+  });
+}
+
+// ¿Hay algún chat visible con mensajes sin leer?
 function hasUnreadChats(me: StoredUser): boolean {
   const prefix = 'melascan_chat_';
   for (let i = 0; i < localStorage.length; i++) {
@@ -108,6 +154,72 @@ function IconChat() {
     </svg>
   );
 }
+function IconUser() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+    </svg>
+  );
+}
+function IconMail() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <polyline points="22 6 12 13 2 6" />
+    </svg>
+  );
+}
+function IconLock() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="11" width="16" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </svg>
+  );
+}
+function IconIdCard() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <circle cx="8" cy="12" r="2" />
+      <line x1="13" y1="10" x2="18" y2="10" />
+      <line x1="13" y1="14" x2="18" y2="14" />
+    </svg>
+  );
+}
+function IconStethoscope() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 2v2" />
+      <path d="M5 2v2" />
+      <path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1" />
+      <path d="M8 15a6 6 0 0 0 12 0v-3" />
+      <circle cx="20" cy="10" r="2" />
+    </svg>
+  );
+}
+function IconPencil() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
+    </svg>
+  );
+}
+function EyeIcon({ open }: { open: boolean }) {
+  return open ? (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    </svg>
+  ) : (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
 
 const NAV_MEDICO = [
   { label: 'Scaner IA', path: '/home', icon: <IconScanner /> },
@@ -121,6 +233,310 @@ const NAV_PACIENTE = [
   { label: 'Criterio ABCDE', path: '/abcde', icon: <IconClipboard /> },
   { label: 'Chats', path: '/chats', icon: <IconChat /> },
 ];
+
+// Cartel "Tus cambios no serán guardados" (se usa en Mi perfil y en Editar pacientes)
+function ConfirmDiscard({ onCancel, onContinue }: { onCancel: () => void; onContinue: () => void }) {
+  return (
+    <div className="modal-backdrop confirm-backdrop">
+      <div className="modal-card confirm-card" onClick={(e) => e.stopPropagation()}>
+        <h3>Tus cambios no serán guardados</h3>
+        <p>
+          Si deseas guardar tus cambios, toca <strong>"cancelar"</strong>.<br />
+          Si deseas continuar sin guardarlos, toca <strong>"continuar"</strong>.
+        </p>
+        <div className="confirm-actions">
+          <button type="button" className="btn-outline" onClick={onCancel}>Cancelar</button>
+          <button type="button" className="btn-primary" onClick={onContinue}>Continuar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Ventana "Mi perfil": se ve igual que el perfil del chat, y con el lápiz se puede editar
+function MyProfileModal({
+  email,
+  onClose,
+  onSaved,
+}: {
+  email: string;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const usersRaw = localStorage.getItem('melascan_users');
+  const users: StoredUser[] = usersRaw ? JSON.parse(usersRaw) : [];
+  const me = users.find((u) => u.email === email);
+
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(me?.name ?? '');
+  const [newEmail, setNewEmail] = useState(me?.email ?? '');
+  const [password, setPassword] = useState(me?.password ?? '');
+  const [showPassword, setShowPassword] = useState(false);
+  const [dni, setDni] = useState(me?.dni ?? '');
+  const [specialty, setSpecialty] = useState(me?.specialty ?? '');
+  const [photo, setPhoto] = useState<string | undefined>(me?.photoDataUrl);
+  // Qué estabas por hacer cuando apareció el cartel de "cambios no guardados"
+  const [confirmAction, setConfirmAction] = useState<'close' | 'stopEditing' | null>(null);
+  const [error, setError] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  if (!me) return null;
+
+  const isDoctor = me.role === 'medico';
+
+  const hasChanges =
+    name !== me.name ||
+    newEmail !== me.email ||
+    password !== (me.password ?? '') ||
+    photo !== me.photoDataUrl ||
+    (isDoctor ? specialty !== (me.specialty ?? '') : dni !== (me.dni ?? ''));
+
+  // Vuelve todo a como estaba guardado
+  const resetValues = () => {
+    setName(me.name);
+    setNewEmail(me.email);
+    setPassword(me.password ?? '');
+    setDni(me.dni ?? '');
+    setSpecialty(me.specialty ?? '');
+    setPhoto(me.photoDataUrl);
+    setError('');
+  };
+
+  const handlePhotoChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setPhoto(ev.target?.result as string);
+    reader.readAsDataURL(f);
+    e.target.value = '';
+  };
+
+  // Lápiz: prende y apaga el modo edición
+  const handleTogglePencil = () => {
+    if (!editing) { setEditing(true); return; }
+    if (hasChanges) setConfirmAction('stopEditing');
+    else setEditing(false);
+  };
+
+  const handleClose = () => {
+    if (hasChanges) setConfirmAction('close');
+    else onClose();
+  };
+
+  const handleConfirmContinue = () => {
+    if (confirmAction === 'close') {
+      onClose();
+      return;
+    }
+    resetValues();
+    setEditing(false);
+    setConfirmAction(null);
+  };
+
+  const handleSave = () => {
+    setError('');
+    const cleanName = name.trim();
+    const cleanEmail = newEmail.trim();
+    const emailChanged = cleanEmail !== me.email;
+
+    if (!cleanName || !cleanEmail || !password) { setError('Completá todos los campos.'); return; }
+    // El correo solo se revisa si lo cambiaste (misma regla que en el Register)
+    if (emailChanged && !/^[^\s@]+@[^\s@]+$/.test(cleanEmail)) { setError('El correo no es válido.'); return; }
+    if (emailChanged && users.some((u) => u.email === cleanEmail)) {
+      setError('Ya existe una cuenta con ese correo.');
+      return;
+    }
+    if (isDoctor && !specialty.trim()) { setError('La especialidad es obligatoria.'); return; }
+    if (!isDoctor && !/^\d{8}$/.test(dni)) { setError('El DNI tiene que tener 8 números.'); return; }
+
+    const oldEmail = me.email;
+    const updatedMe: StoredUser = {
+      ...me,
+      name: cleanName,
+      email: cleanEmail,
+      password,
+      photoDataUrl: photo,
+      ...(isDoctor ? { specialty: specialty.trim() } : { dni }),
+    };
+
+    // Usuarios: mis datos + (si cambié el correo) los pacientes que me tienen asignado
+    const updatedUsers = users.map((u) => {
+      if (u.email === oldEmail) return updatedMe;
+      if (emailChanged && u.role === 'paciente') {
+        const assigned = getAssignedDoctors(u);
+        if (assigned.includes(oldEmail)) {
+          return { ...u, assignedDoctorEmails: assigned.map((d) => (d === oldEmail ? cleanEmail : d)) };
+        }
+      }
+      return u;
+    });
+    localStorage.setItem('melascan_users', JSON.stringify(updatedUsers));
+
+    // Análisis: se actualizan mi nombre y mi correo donde aparezco
+    const histRaw = localStorage.getItem('melascan_historial');
+    const historial: HistorialRecord[] = histRaw ? JSON.parse(histRaw) : [];
+    const updatedHist = historial.map((r) => {
+      const copy = { ...r };
+      if (copy.doctorEmail === oldEmail) { copy.doctorEmail = cleanEmail; copy.doctorName = cleanName; }
+      if (copy.patientEmail === oldEmail) { copy.patientEmail = cleanEmail; copy.patientName = cleanName; }
+      if (copy.sentTo) {
+        copy.sentTo = copy.sentTo.map((s) => (s.email === oldEmail ? { email: cleanEmail, name: cleanName } : s));
+      }
+      return copy;
+    });
+    localStorage.setItem('melascan_historial', JSON.stringify(updatedHist));
+
+    // Chats: si cambié el correo, se renombran para no perder nada
+    if (emailChanged) renameEmailInKeys(oldEmail, cleanEmail);
+
+    localStorage.setItem('melascan_session', JSON.stringify(updatedMe));
+    window.dispatchEvent(new Event('storage'));
+    onSaved();
+  };
+
+  return createPortal(
+    <>
+      <div className="modal-backdrop">
+        <div
+          className={`modal-card profile-card my-profile${isDoctor ? ' is-doctor' : ''}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            className={`profile-edit-btn${editing ? ' active' : ''}`}
+            onClick={handleTogglePencil}
+            aria-label={editing ? 'Dejar de editar' : 'Editar perfil'}
+          >
+            <IconPencil />
+          </button>
+          <button className="modal-close" onClick={handleClose} aria-label="Cerrar">✕</button>
+
+          <div className="profile-card-header">
+            <div className="profile-card-avatar">
+              {photo ? (
+                <img src={photo} alt="Foto de perfil" />
+              ) : (
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+                </svg>
+              )}
+            </div>
+            <div>
+              <h4 className="profile-card-name">{name || me.name}</h4>
+              <span className="profile-card-sub">{isDoctor ? (specialty || 'Médico') : 'Paciente'}</span>
+              {editing && (
+                <div className="profile-photo-actions">
+                  <button type="button" className="link-btn" onClick={() => fileRef.current?.click()}>
+                    Cambiar foto
+                  </button>
+                  {photo && (
+                    <button type="button" className="link-btn link-danger" onClick={() => setPhoto(undefined)}>
+                      Eliminar foto
+                    </button>
+                  )}
+                </div>
+              )}
+              <input ref={fileRef} type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: 'none' }} />
+            </div>
+          </div>
+
+          <div className="profile-field">
+            <span className="profile-field-label">Nombre Completo</span>
+            <div className={`profile-field-box${editing ? ' editing' : ''}`}>
+              <IconUser />
+              {editing ? <input value={name} onChange={(e) => setName(e.target.value)} /> : <span>{name}</span>}
+            </div>
+          </div>
+
+          <div className="profile-field">
+            <span className="profile-field-label">Correo Electrónico</span>
+            <div className={`profile-field-box${editing ? ' editing' : ''}`}>
+              <IconMail />
+              {editing ? (
+                <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+              ) : (
+                <span>{newEmail}</span>
+              )}
+            </div>
+          </div>
+
+          <div className="profile-field">
+            <span className="profile-field-label">Contraseña</span>
+            <div className={`profile-field-box${editing ? ' editing' : ''}`}>
+              <IconLock />
+              {editing ? (
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              ) : (
+                <span>{showPassword ? password : '•'.repeat(Math.max(password.length, 8))}</span>
+              )}
+              <button
+                type="button"
+                className="profile-eye-btn"
+                onClick={() => setShowPassword((s) => !s)}
+                aria-label="Mostrar contraseña"
+              >
+                <EyeIcon open={showPassword} />
+              </button>
+            </div>
+          </div>
+
+          {isDoctor ? (
+            <div className="profile-field">
+              <span className="profile-field-label">Especialidad</span>
+              <div className={`profile-field-box${editing ? ' editing' : ''}`}>
+                <IconStethoscope />
+                {editing ? (
+                  <input value={specialty} onChange={(e) => setSpecialty(e.target.value)} />
+                ) : (
+                  <span>{specialty || '—'}</span>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="profile-field">
+              <span className="profile-field-label">DNI</span>
+              <div className={`profile-field-box${editing ? ' editing' : ''}`}>
+                <IconIdCard />
+                {editing ? (
+                  <input
+                    value={dni}
+                    onChange={(e) => setDni(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                    inputMode="numeric"
+                  />
+                ) : (
+                  <span>{formatDni(dni)}</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {error && <p className="form-error">{error}</p>}
+
+          {editing && (
+            <button type="button" className="btn-primary auth-submit" onClick={handleSave} disabled={!hasChanges}>
+              Guardar
+            </button>
+          )}
+        </div>
+      </div>
+
+      {confirmAction && (
+        <ConfirmDiscard onCancel={() => setConfirmAction(null)} onContinue={handleConfirmContinue} />
+      )}
+    </>,
+    document.body
+  );
+}
 
 // Ventana "Editar pacientes" (solo médicos). Los cambios se aplican recién al tocar "Guardar".
 function EditPatientsModal({
@@ -208,8 +624,7 @@ function EditPatientsModal({
   return createPortal(
     <>
       <div className="modal-backdrop">
-        <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-          <button className="modal-close" onClick={handleCloseClick} aria-label="Cerrar">✕</button>
+      <div className="modal-card edit-patients-card" onClick={(e) => e.stopPropagation()}>          <button className="modal-close" onClick={handleCloseClick} aria-label="Cerrar">✕</button>
           <h2>Edita tus pacientes asignados</h2>
 
           <div className="field">
@@ -275,21 +690,7 @@ function EditPatientsModal({
         </div>
       </div>
 
-      {confirmExit && (
-        <div className="modal-backdrop confirm-backdrop">
-          <div className="modal-card confirm-card" onClick={(e) => e.stopPropagation()}>
-            <h3>Tus cambios no serán guardados</h3>
-            <p>
-              Si deseas guardar tus cambios, toca <strong>"cancelar"</strong>.<br />
-              Si deseas continuar sin guardarlos, toca <strong>"continuar"</strong>.
-            </p>
-            <div className="confirm-actions">
-              <button type="button" className="btn-outline" onClick={() => setConfirmExit(false)}>Cancelar</button>
-              <button type="button" className="btn-primary" onClick={onClose}>Continuar</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {confirmExit && <ConfirmDiscard onCancel={() => setConfirmExit(false)} onContinue={onClose} />}
     </>,
     document.body
   );
@@ -298,14 +699,14 @@ function EditPatientsModal({
 export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [editPatientsOpen, setEditPatientsOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [, setTick] = useState(0);
 
-  // Si cambia algo guardado (mensaje nuevo, chat leído, etc.) se vuelve a calcular el puntito
+  // Si cambia algo guardado (mensaje nuevo, chat leído, perfil, etc.) se vuelve a dibujar
   useEffect(() => {
     const handler = () => setTick((n) => n + 1);
     window.addEventListener('storage', handler);
@@ -335,30 +736,6 @@ export default function Sidebar() {
     setConfirmLogout(false);
     localStorage.removeItem('melascan_session');
     navigate('/');
-  };
-
-  const updatePhoto = (photoDataUrl: string | undefined) => {
-    if (!sessionEmail) return;
-    const updatedUsers = users.map((u) => (u.email === sessionEmail ? { ...u, photoDataUrl } : u));
-    localStorage.setItem('melascan_users', JSON.stringify(updatedUsers));
-    window.dispatchEvent(new Event('storage'));
-    navigate(location.pathname, { replace: true });
-  };
-
-  const handlePhotoChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      updatePhoto(ev.target?.result as string);
-      setMenuOpen(false);
-    };
-    reader.readAsDataURL(f);
-  };
-
-  const handleRemovePhoto = () => {
-    updatePhoto(undefined);
-    setMenuOpen(false);
   };
 
   const handleNavClick = (path: string) => {
@@ -416,19 +793,9 @@ export default function Sidebar() {
           <>
             <div className="profile-menu-overlay" onClick={() => setMenuOpen(false)} />
             <div className="profile-menu">
-              {currentUser?.photoDataUrl && (
-                <button type="button" className="danger" onClick={handleRemovePhoto}>Eliminar foto</button>
-              )}
-              <label>
-                Cambiar foto
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoChange}
-                  style={{ display: 'none' }}
-                />
-              </label>
+              <button type="button" onClick={() => { setMenuOpen(false); setProfileOpen(true); }}>
+                Mi perfil
+              </button>
               {currentUser?.role === 'medico' && (
                 <button type="button" onClick={() => { setMenuOpen(false); setEditPatientsOpen(true); }}>
                   Editar pacientes
@@ -441,6 +808,14 @@ export default function Sidebar() {
           </>
         )}
       </div>
+
+      {profileOpen && currentUser && (
+        <MyProfileModal
+          email={currentUser.email}
+          onClose={() => setProfileOpen(false)}
+          onSaved={() => { setProfileOpen(false); showToast('Cambios guardados'); }}
+        />
+      )}
 
       {editPatientsOpen && currentUser && (
         <EditPatientsModal
