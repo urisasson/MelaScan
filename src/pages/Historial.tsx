@@ -284,10 +284,6 @@ function AnalysisDetail({ recordId, onBack }: { recordId: string; onBack: () => 
             </div>
           </div>
 
-          <button className="btn-primary scan-analyze-btn" disabled>
-            Análisis guardado ✓
-          </button>
-
           <button className="collapsible-toggle-v2" onClick={() => setShowTips((s) => !s)}>
             <IconInfo /> Recomendaciones para la fotografía
             <span className="collapsible-chevron"><IconChevron open={showTips} /></span>

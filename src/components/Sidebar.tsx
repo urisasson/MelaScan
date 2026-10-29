@@ -296,7 +296,7 @@ function MyProfileModal({
     photo !== me.photoDataUrl ||
     (isDoctor ? specialty !== (me.specialty ?? '') : dni !== (me.dni ?? ''));
 
-  // Vuelve todo a como estaba guardado
+
   const resetValues = () => {
     setName(me.name);
     setNewEmail(me.email);
