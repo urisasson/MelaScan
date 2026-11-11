@@ -973,3 +973,6 @@ button, input, textarea, select { font-family: inherit; }
 
 /* Error al analizar */
 .analysis-error { margin: 10px 0 0; }
+
+/* Nota cuando la IA no pudo medir el lunar */
+.abcde-note { margin: 10px 0 0; font-size: 12px; color: var(--muted); line-height: 1.5; }

@@ -110,7 +110,10 @@ export function interpretar(r: IaResultado): ResultadoGuardado {
 
   const a = r.abcde;
   const evaluable = a.evaluable && !!a.A && !!a.B && !!a.C && !!a.D;
-  const eTexto = 'No evaluable con una sola foto';
+
+  // E: según el riesgo (más de 50% = propenso a evolucionar)
+  const propenso = riesgo > 50;
+  const eTexto = propenso ? 'Propenso a evolucionar' : 'Sin signos de evolución';
 
   const abcdeTexts: AbcdeTexts = evaluable
     ? {
@@ -122,7 +125,12 @@ export function interpretar(r: IaResultado): ResultadoGuardado {
       }
     : { A: 'No evaluable', B: 'No evaluable', C: 'No evaluable', D: 'No evaluable', E: eTexto };
 
-  const criteriaUsed = evaluable ? (['A', 'B', 'C'] as const).filter((k) => a[k]?.cumple) : [];
+  // En riesgo Bajo no se marca nada en rojo, para que no contradiga el resultado general
+  let criteriaUsed: string[] = [];
+  if (triage !== 'bajo') {
+    if (evaluable) criteriaUsed = (['A', 'B', 'C'] as const).filter((k) => a[k]?.cumple);
+    if (propenso) criteriaUsed = [...criteriaUsed, 'E'];
+  }
 
   return { triage, riskPercentage: riesgo, criteriaUsed, abcdeTexts, actions: ACCIONES[triage] };
 }
@@ -201,16 +209,26 @@ export function ResultHero({ triage, risk }: { triage: Triage; risk: number | nu
 }
 
 // Las 5 tarjetas ABCDE (las que dan positivo se marcan en rojo suave)
+// Las 5 tarjetas ABCDE (las que dan positivo se marcan en rojo suave)
 export function AbcdeGrid({ texts, used }: { texts?: AbcdeTexts; used: string[] }) {
+  const noEvaluable = texts?.A === 'No evaluable';
   return (
-    <div className="abcde-detail-grid">
-      {LETRAS.map((c) => (
-        <div className={`abcde-detail-card${used.includes(c.letter) ? ' used' : ''}`} key={c.letter}>
-          <span className="abcde-detail-letter">{c.letter} - {c.title}</span>
-          <span className="abcde-detail-desc">{texts ? texts[c.letter] : '—'}</span>
-        </div>
-      ))}
-    </div>
+    <>
+      <div className="abcde-detail-grid">
+        {LETRAS.map((c) => (
+          <div className={`abcde-detail-card${used.includes(c.letter) ? ' used' : ''}`} key={c.letter}>
+            <span className="abcde-detail-letter">{c.letter} - {c.title}</span>
+            <span className="abcde-detail-desc">{texts ? texts[c.letter] : '—'}</span>
+          </div>
+        ))}
+      </div>
+      {noEvaluable && (
+        <p className="abcde-note">
+          La IA no pudo delimitar bien el lunar en esta foto, por eso no evaluó A, B, C y D.
+          El riesgo IA sí es válido.
+        </p>
+      )}
+    </>
   );
 }
 
