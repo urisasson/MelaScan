@@ -376,7 +376,7 @@ export default function Home() {
               disabled={!file || analyzing || hasResult}
               onClick={handleAnalyze}
             >
-              {analyzing ? 'Analizando…' : hasResult ? 'Análisis guardado ✓' : 'Analizar lunar'}
+              {analyzing ? 'Analizando…' : hasResult ? 'Analizado ✓' : 'Analizar lunar'}
             </button>
             {analysisError && <p className="form-error analysis-error">{analysisError}</p>}
 
