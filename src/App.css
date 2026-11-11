@@ -928,3 +928,48 @@ button.back-link:hover {
 .edit-patients-card h2 { margin-top: 16px; }
 
 button, input, textarea, select { font-family: inherit; }
+
+/* ==================== Resultado de la IA: colores según triage ==================== */
+/* Verde: riesgo bajo */
+.result-hero.triage-bajo { background: #E6F6EC; border-color: #A9DDBC; }
+.result-hero.triage-bajo .result-hero-icon { background: #2E9D5B; border-color: #2E9D5B; color: #fff; }
+.result-hero.triage-bajo .result-risk-pill { background: #C6ECD4; color: #1E7A43; border-color: #8FD3A9; }
+.result-hero.triage-bajo .result-hero-risk { border-left-color: #A9DDBC; }
+.result-hero.triage-bajo .result-hero-risk strong { color: #1E7A43; }
+
+/* Amarillo: riesgo moderado */
+.result-hero.triage-moderado { background: #FDF5E1; border-color: #F0D28A; }
+.result-hero.triage-moderado .result-hero-icon { background: #E3A21A; border-color: #E3A21A; color: #fff; }
+.result-hero.triage-moderado .result-risk-pill { background: #F9E3AA; color: #8A5D00; border-color: #EBC66B; }
+.result-hero.triage-moderado .result-hero-risk { border-left-color: #F0D28A; }
+.result-hero.triage-moderado .result-hero-risk strong { color: #8A5D00; }
+
+/* Rojo: riesgo alto */
+.result-hero.triage-alto { background: #FDECEA; border-color: #F2B8AE; }
+.result-hero.triage-alto .result-hero-icon { background: #D9534F; border-color: #D9534F; color: #fff; }
+.result-hero.triage-alto .result-risk-pill { background: #F8D2CB; color: #A3322A; border-color: #EDA89C; }
+.result-hero.triage-alto .result-hero-risk { border-left-color: #F2B8AE; }
+.result-hero.triage-alto .result-hero-risk strong { color: #A3322A; }
+
+/* Recuadro ordenado: pastilla arriba, título, texto, y el % a la derecha */
+.result-hero { align-items: center; }
+.result-hero-main h4 { margin-top: 2px; }
+.result-hero-main p { line-height: 1.45; }
+.result-hero-risk strong { font-size: 24px; }
+
+/* Tarjetas ABCDE que dan positivo: rojo suave */
+.abcde-detail-card.used { background: #FDECEA; border-color: #F2B8AE; }
+.abcde-detail-card.used .abcde-detail-letter { color: #C0392B; }
+.abcde-detail-desc { color: #14181A; }
+
+/* Tablas: pastilla de triage con color */
+.triage-pill.triage-bajo { background: #E1F4E7; color: #1E7A43; border-color: #A9DDBC; }
+.triage-pill.triage-moderado { background: #FBEFD7; color: #8A5D00; border-color: #EBC66B; }
+.triage-pill.triage-alto { background: #FDE6E1; color: #A3322A; border-color: #EDA89C; }
+
+/* Tablas: letras ABCDE positivas marcadas */
+.criteria-dot.used { background: #FDECEA; color: #C0392B; border-color: #F2B8AE; }
+.risk-cell { font-weight: 700; }
+
+/* Error al analizar */
+.analysis-error { margin: 10px 0 0; }

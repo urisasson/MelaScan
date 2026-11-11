@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
+import { ResultHero, AbcdeGrid, AccionesList, TriagePill, CriteriaDots, formatRisk } from '../ia';
+import type { Triage, AbcdeTexts } from '../ia';
 
 interface SentEntry {
   email: string;
@@ -11,9 +13,11 @@ interface AnalysisRecord {
   id: string;
   date: string;
   imageDataUrl: string;
-  triage: 'pendiente' | 'bajo' | 'moderado' | 'alto';
+  triage: Triage;
   riskPercentage: number | null;
   criteriaUsed: string[];
+  abcdeTexts?: AbcdeTexts;
+  actions?: string[];
   description: string;
   sentToPatient: boolean;
   doctorEmail?: string;
@@ -36,16 +40,19 @@ interface Session {
   role: 'medico' | 'paciente';
 }
 
+// Saca tildes y pasa a minúscula, para que "pe" encuentre "Pérez"
 function normalize(s: string) {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
+// ¿Alguna palabra (nombre o apellido) empieza con lo que escribiste?
 function matchesWordStart(text: string, query: string): boolean {
   const q = normalize(query.trim());
   if (!q) return true;
   return normalize(text).split(' ').some((word) => word.startsWith(q));
 }
 
+// Muestra el nombre completo, con en negrita solo el principio de la palabra que coincide
 function HighlightMatch({ text, query }: { text: string; query: string }) {
   const q = normalize(query.trim());
   if (!q) return <>{text}</>;
@@ -63,16 +70,6 @@ function HighlightMatch({ text, query }: { text: string; query: string }) {
     </>
   );
 }
-
-const ALL_CRITERIA: string[] = ['A', 'B', 'C', 'D', 'E'];
-
-const ABCDE_CRITERIA = [
-  { letter: 'A', title: 'Asimetría' },
-  { letter: 'B', title: 'Bordes' },
-  { letter: 'C', title: 'Color' },
-  { letter: 'D', title: 'Diámetro' },
-  { letter: 'E', title: 'Evolución' },
-];
 
 // A quiénes se les envió el análisis (soporta análisis viejos, que guardaban un solo paciente)
 function getSentTo(r: AnalysisRecord): SentEntry[] {
@@ -93,9 +90,9 @@ function IconPlus() {
     </svg>
   );
 }
-function IconSearch({ size = 15 }: { size?: number }) {
+function IconSearch() {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="11" cy="11" r="8" />
       <line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
@@ -299,43 +296,20 @@ function AnalysisDetail({ recordId, onBack }: { recordId: string; onBack: () => 
         </div>
 
         <div className="scan-card">
-          {/* Recuadro grande: resultado triage + riesgo IA */}
-          <div className="result-hero">
-            <span className="result-hero-icon"><IconSearch size={20} /></span>
-            <div className="result-hero-main">
-              <span className="result-risk-pill">RIESGO —</span>
-              <h4>—</h4>
-              <p>—</p>
-            </div>
-            <div className="result-hero-risk">
-              <span>Riesgo IA</span>
-              <strong>—%</strong>
-            </div>
-          </div>
+          <ResultHero triage={record.triage} risk={record.riskPercentage} />
 
           <div className="result-section">
             <div className="result-section-head">
               <div className="scan-section-title"><IconGrid /> Clasificación a partir del criterio ABCDE</div>
             </div>
-            <div className="abcde-detail-grid">
-              {ABCDE_CRITERIA.map((c) => (
-                <div className="abcde-detail-card" key={c.letter}>
-                  <span className="abcde-detail-letter">{c.letter} - {c.title}</span>
-                  <span className="abcde-detail-desc">—</span>
-                </div>
-              ))}
-            </div>
+            <AbcdeGrid texts={record.abcdeTexts} used={record.criteriaUsed ?? []} />
           </div>
 
           <div className="result-section">
             <div className="result-section-head">
               <div className="scan-section-title"><IconCheckSquare /> Acciones Recomendadas</div>
             </div>
-            <ul className="actions-checklist">
-              <li>—</li>
-              <li>—</li>
-              <li>—</li>
-            </ul>
+            <AccionesList actions={record.actions} />
           </div>
 
           <div className="result-section">
@@ -346,9 +320,9 @@ function AnalysisDetail({ recordId, onBack }: { recordId: string; onBack: () => 
               <input
                 value={description}
                 onChange={(e) => { setDescription(e.target.value); setDescriptionSaved(false); }}
-                placeholder="Escriba sus anotaciones sobre el análisis"
+                placeholder="Escriba sus anotaciones sobre el análisis realizado"
               />
-                <button className="btn-primary btn-sm" onClick={handleSaveDescription} disabled={descriptionSaved}>Guardar</button>
+              <button className="btn-primary btn-sm" onClick={handleSaveDescription} disabled={descriptionSaved}>Guardar</button>
             </div>
           </div>
 
@@ -446,7 +420,8 @@ export default function Historial() {
 
   const session = guardSession;
   const myEntries = readHistorial().filter((r) => r.doctorEmail === session.email);
-  const entries = myEntries.filter((r) => matchesWordStart(r.patientName ?? '', search));  const selected = myEntries.find((e) => e.id === selectedId) ?? null;
+  const entries = myEntries.filter((r) => matchesWordStart(r.patientName ?? '', search));
+  const selected = myEntries.find((e) => e.id === selectedId) ?? null;
 
   if (selected) {
     return (
@@ -509,16 +484,11 @@ export default function Historial() {
                 entries.map((entry) => (
                   <tr key={entry.id} className="clickable-row" onClick={() => setSelectedId(entry.id)}>
                     <td><img src={entry.imageDataUrl} alt="Lesión" className="historial-thumb" /></td>
-                    <td>{entry.patientName ? <HighlightMatch text={entry.patientName} query={search} /> : '—'}</td>                    <td>{entry.date}</td>
-                    <td><span className="triage-pill">— Riesgo</span></td>
-                    <td>
-                      <div className="criteria-dots">
-                        {ALL_CRITERIA.map((letter) => (
-                          <span key={letter} className="criteria-dot">{letter}</span>
-                        ))}
-                      </div>
-                    </td>
-                    <td>—</td>
+                    <td>{entry.patientName ? <HighlightMatch text={entry.patientName} query={search} /> : '—'}</td>
+                    <td>{entry.date}</td>
+                    <td><TriagePill triage={entry.triage} /></td>
+                    <td><CriteriaDots used={entry.criteriaUsed ?? []} /></td>
+                    <td className="risk-cell">{formatRisk(entry.riskPercentage)}</td>
                     <td className="descripcion-cell">{entry.description || '—'}</td>
                   </tr>
                 ))

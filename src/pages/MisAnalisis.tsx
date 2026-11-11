@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
+import { ResultHero, AbcdeGrid, AccionesList, TriagePill, CriteriaDots, formatRisk } from '../ia';
+import type { Triage, AbcdeTexts } from '../ia';
 
 interface SentEntry {
   email: string;
@@ -11,9 +13,11 @@ interface AnalysisRecord {
   id: string;
   date: string;
   imageDataUrl: string;
-  triage: 'pendiente' | 'bajo' | 'moderado' | 'alto';
+  triage: Triage;
   riskPercentage: number | null;
   criteriaUsed: string[];
+  abcdeTexts?: AbcdeTexts;
+  actions?: string[];
   sentToPatient: boolean;
   doctorName?: string;
   patientEmail?: string;
@@ -26,16 +30,19 @@ interface Session {
   role: 'medico' | 'paciente';
 }
 
+// Saca tildes y pasa a minúscula, para que "pe" encuentre "Pérez"
 function normalize(s: string) {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
+// ¿Alguna palabra (nombre o apellido) empieza con lo que escribiste?
 function matchesWordStart(text: string, query: string): boolean {
   const q = normalize(query.trim());
   if (!q) return true;
   return normalize(text).split(' ').some((word) => word.startsWith(q));
 }
 
+// Muestra el nombre completo, con en negrita solo el principio de la palabra que coincide
 function HighlightMatch({ text, query }: { text: string; query: string }) {
   const q = normalize(query.trim());
   if (!q) return <>{text}</>;
@@ -54,15 +61,6 @@ function HighlightMatch({ text, query }: { text: string; query: string }) {
   );
 }
 
-const ALL_CRITERIA: string[] = ['A', 'B', 'C', 'D', 'E'];
-const ABCDE_CRITERIA = [
-  { letter: 'A', title: 'Asimetría' },
-  { letter: 'B', title: 'Bordes' },
-  { letter: 'C', title: 'Color' },
-  { letter: 'D', title: 'Diámetro' },
-  { letter: 'E', title: 'Evolución' },
-];
-
 function getSentTo(r: AnalysisRecord): SentEntry[] {
   if (r.sentTo) return r.sentTo;
   return r.sentToPatient && r.patientEmail ? [{ email: r.patientEmail, name: r.patientName ?? '' }] : [];
@@ -76,7 +74,6 @@ function IconSearch() {
     </svg>
   );
 }
-
 function IconArrowLeft() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -85,7 +82,6 @@ function IconArrowLeft() {
     </svg>
   );
 }
-
 function IconInfo() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -95,7 +91,6 @@ function IconInfo() {
     </svg>
   );
 }
-
 function IconUser() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -148,7 +143,8 @@ export default function MisAnalisis() {
   const session = guardSession;
 
   const myAnalyses = all.filter((r) => getSentTo(r).some((s) => s.email === session.email));
-  const entries = myAnalyses.filter((r) => matchesWordStart(r.doctorName ?? '', search));  const selected = myAnalyses.find((a) => a.id === selectedId) ?? null;
+  const entries = myAnalyses.filter((r) => matchesWordStart(r.doctorName ?? '', search));
+  const selected = myAnalyses.find((a) => a.id === selectedId) ?? null;
 
   if (selected) {
     return (
@@ -165,18 +161,7 @@ export default function MisAnalisis() {
             </div>
 
             <div className="scan-card">
-              <div className="result-hero">
-                <span className="result-hero-icon"><IconSearch /></span>
-                <div className="result-hero-main">
-                  <span className="result-risk-pill">RIESGO —</span>
-                  <h4>—</h4>
-                  <p>—</p>
-                </div>
-                <div className="result-hero-risk">
-                  <span>Riesgo IA</span>
-                  <strong>—%</strong>
-                </div>
-              </div>
+              <ResultHero triage={selected.triage} risk={selected.riskPercentage} />
 
               <div className="result-section">
                 <div className="result-section-head">
@@ -189,25 +174,14 @@ export default function MisAnalisis() {
                 <div className="result-section-head">
                   <div className="scan-section-title"><IconGrid /> Clasificación a partir del criterio ABCDE</div>
                 </div>
-                <div className="abcde-detail-grid">
-                  {ABCDE_CRITERIA.map((c) => (
-                    <div className="abcde-detail-card" key={c.letter}>
-                      <span className="abcde-detail-letter">{c.letter} - {c.title}</span>
-                      <span className="abcde-detail-desc">—</span>
-                    </div>
-                  ))}
-                </div>
+                <AbcdeGrid texts={selected.abcdeTexts} used={selected.criteriaUsed ?? []} />
               </div>
 
               <div className="result-section">
                 <div className="result-section-head">
                   <div className="scan-section-title"><IconCheckSquare /> Acciones Recomendadas</div>
                 </div>
-                <ul className="actions-checklist">
-                  <li>—</li>
-                  <li>—</li>
-                  <li>—</li>
-                </ul>
+                <AccionesList actions={selected.actions} />
               </div>
 
               <div className="disclaimer-note">
@@ -271,15 +245,9 @@ export default function MisAnalisis() {
                     <td><img src={entry.imageDataUrl} alt="Lesión" className="historial-thumb" /></td>
                     <td>{entry.doctorName ? <HighlightMatch text={entry.doctorName} query={search} /> : '—'}</td>
                     <td>{entry.date}</td>
-                    <td><span className="triage-pill">— Riesgo</span></td>
-                    <td>
-                      <div className="criteria-dots">
-                        {ALL_CRITERIA.map((letter) => (
-                          <span key={letter} className="criteria-dot">{letter}</span>
-                        ))}
-                      </div>
-                    </td>
-                    <td>—</td>
+                    <td><TriagePill triage={entry.triage} /></td>
+                    <td><CriteriaDots used={entry.criteriaUsed ?? []} /></td>
+                    <td className="risk-cell">{formatRisk(entry.riskPercentage)}</td>
                   </tr>
                 ))
               )}

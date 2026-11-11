@@ -1,14 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
 import Sidebar from '../components/Sidebar';
+import { analizarImagen, interpretar, comprimirImagen, ResultHero, AbcdeGrid, AccionesList } from '../ia';
+import type { ResultadoGuardado, Triage, AbcdeTexts } from '../ia';
 
 interface AnalysisRecord {
   id: string;
   date: string;
   imageDataUrl: string;
-  triage: 'pendiente' | 'bajo' | 'moderado' | 'alto';
+  triage: Triage;
   riskPercentage: number | null;
   criteriaUsed: string[];
+  abcdeTexts?: AbcdeTexts;
+  actions?: string[];
   description: string;
   sentToPatient: boolean;
   doctorEmail: string;
@@ -32,16 +36,19 @@ interface Session {
   role: 'medico' | 'paciente';
 }
 
+// Saca tildes y pasa a minúscula, para que "pe" encuentre "Pérez"
 function normalize(s: string) {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
+// ¿Alguna palabra (nombre o apellido) empieza con lo que escribiste?
 function matchesWordStart(text: string, query: string): boolean {
   const q = normalize(query.trim());
   if (!q) return true;
   return normalize(text).split(' ').some((word) => word.startsWith(q));
 }
 
+// Muestra el nombre completo, con en negrita solo el principio de la palabra que coincide
 function HighlightMatch({ text, query }: { text: string; query: string }) {
   const q = normalize(query.trim());
   if (!q) return <>{text}</>;
@@ -59,14 +66,6 @@ function HighlightMatch({ text, query }: { text: string; query: string }) {
     </>
   );
 }
-
-const ABCDE_CRITERIA = [
-  { letter: 'A', title: 'Asimetría' },
-  { letter: 'B', title: 'Bordes' },
-  { letter: 'C', title: 'Color' },
-  { letter: 'D', title: 'Diámetro' },
-  { letter: 'E', title: 'Evolución' },
-];
 
 function IconCamera() {
   return (
@@ -138,14 +137,6 @@ function IconSend() {
     </svg>
   );
 }
-function IconSearch() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8" />
-      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-    </svg>
-  );
-}
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
@@ -153,6 +144,8 @@ export default function Home() {
   const [dragging, setDragging] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [hasResult, setHasResult] = useState(false);
+  const [result, setResult] = useState<ResultadoGuardado | null>(null);
+  const [analysisError, setAnalysisError] = useState('');
   const [showTips, setShowTips] = useState(false);
   const [description, setDescription] = useState('');
   const [descriptionSaved, setDescriptionSaved] = useState(false);
@@ -165,7 +158,7 @@ export default function Home() {
 
   const [patientSaved, setPatientSaved] = useState(false);
   const [confirmingSend, setConfirmingSend] = useState(false);
-  const [locked, setLocked] = useState(false); // true = ya se envió (no se puede volver a enviar ni cambiar)
+  const [locked, setLocked] = useState(false); // true = ya se envió a este paciente
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -176,7 +169,6 @@ export default function Home() {
   const users: StoredUser[] = usersRaw ? JSON.parse(usersRaw) : [];
 
   const allPatients = users.filter((u) => u.role === 'paciente').sort((a, b) => a.name.localeCompare(b.name));
-
   const filteredPatients = allPatients.filter((p) => matchesWordStart(p.name, patientQuery));
 
   // Deja la pantalla como recién entrada (sin foto ni resultado)
@@ -186,6 +178,8 @@ export default function Home() {
     setDragging(false);
     setAnalyzing(false);
     setHasResult(false);
+    setResult(null);
+    setAnalysisError('');
     setShowTips(false);
     setDescription('');
     setDescriptionSaved(false);
@@ -214,6 +208,8 @@ export default function Home() {
     if (!f) return;
     setFile(f);
     setHasResult(false);
+    setResult(null);
+    setAnalysisError('');
     setRecordId(null);
     setDescription('');
     setDescriptionSaved(false);
@@ -237,40 +233,50 @@ export default function Home() {
     loadFile(e.dataTransfer.files?.[0]);
   };
 
+  // Manda la foto a la IA, interpreta el resultado y lo guarda en el historial
   const handleAnalyze = async () => {
     if (!file || !preview || !session) return;
     setAnalyzing(true);
+    setAnalysisError('');
 
-    // TODO: reemplazar por la llamada real a la API de IA (FastAPI) de Ezequiel
-    // const formData = new FormData();
-    // formData.append('image', file);
-    // const res = await fetch('http://localhost:8000/analizar', { method: 'POST', body: formData });
-    // const data = await res.json();
-    // Cuando eso exista, el registro de abajo va a usar data.triage,
-    // data.riskPercentage y data.criteriaUsed en vez de los valores "pendiente".
+    try {
+      const respuesta = await analizarImagen(file);
+      const interpretado = interpretar(respuesta);
+      const imagenChica = await comprimirImagen(preview);
 
-    const raw = localStorage.getItem('melascan_historial');
-    const historial: AnalysisRecord[] = raw ? JSON.parse(raw) : [];
+      const raw = localStorage.getItem('melascan_historial');
+      const historial: AnalysisRecord[] = raw ? JSON.parse(raw) : [];
 
-    const newRecord: AnalysisRecord = {
-      id: crypto.randomUUID(),
-      date: new Date().toLocaleDateString('es-AR'),
-      imageDataUrl: preview,
-      triage: 'pendiente',
-      riskPercentage: null,
-      criteriaUsed: [],
-      description: '',
-      sentToPatient: false,
-      doctorEmail: session.email,
-      doctorName: session.name,
-    };
+      const newRecord: AnalysisRecord = {
+        id: crypto.randomUUID(),
+        date: new Date().toLocaleDateString('es-AR'),
+        imageDataUrl: imagenChica,
+        triage: interpretado.triage,
+        riskPercentage: interpretado.riskPercentage,
+        criteriaUsed: interpretado.criteriaUsed,
+        abcdeTexts: interpretado.abcdeTexts,
+        actions: interpretado.actions,
+        description: '',
+        sentToPatient: false,
+        doctorEmail: session.email,
+        doctorName: session.name,
+      };
 
-    historial.unshift(newRecord);
-    localStorage.setItem('melascan_historial', JSON.stringify(historial));
+      try {
+        localStorage.setItem('melascan_historial', JSON.stringify([newRecord, ...historial]));
+      } catch {
+        setAnalysisError('No hay más espacio para guardar análisis en este navegador.');
+        return;
+      }
 
-    setRecordId(newRecord.id);
-    setAnalyzing(false);
-    setHasResult(true);
+      setResult(interpretado);
+      setRecordId(newRecord.id);
+      setHasResult(true);
+    } catch (err) {
+      setAnalysisError(err instanceof Error ? err.message : 'Error inesperado al analizar la imagen.');
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   const handleSaveDescription = () => {
@@ -370,8 +376,9 @@ export default function Home() {
               disabled={!file || analyzing || hasResult}
               onClick={handleAnalyze}
             >
-              {analyzing ? 'Analizando…' : hasResult ? 'Analizar lunar' : 'Analizar lunar'}
+              {analyzing ? 'Analizando…' : hasResult ? 'Análisis guardado ✓' : 'Analizar lunar'}
             </button>
+            {analysisError && <p className="form-error analysis-error">{analysisError}</p>}
 
             <button className="collapsible-toggle-v2" onClick={() => setShowTips((s) => !s)}>
               <IconInfo /> Recomendaciones para la fotografía
@@ -388,50 +395,27 @@ export default function Home() {
           </div>
 
           <div className="scan-card">
-            {!hasResult ? (
+            {!hasResult || !result ? (
               <div className="result-empty">
                 <h3>Resultado de diagnóstico</h3>
                 <p>Suba una imagen o arrástrela en el seleccionador de la izquierda para que sea analizada y ver los resultados.</p>
               </div>
             ) : (
               <>
-                {/* Recuadro grande: resultado triage + riesgo IA */}
-                <div className="result-hero">
-                  <span className="result-hero-icon"><IconSearch /></span>
-                  <div className="result-hero-main">
-                    <span className="result-risk-pill">RIESGO —</span>
-                    <h4>—</h4>
-                    <p>—</p>
-                  </div>
-                  <div className="result-hero-risk">
-                    <span>Riesgo IA</span>
-                    <strong>—%</strong>
-                  </div>
-                </div>
+                <ResultHero triage={result.triage} risk={result.riskPercentage} />
 
                 <div className="result-section">
                   <div className="result-section-head">
                     <div className="scan-section-title"><IconGrid /> Clasificación a partir del criterio ABCDE</div>
                   </div>
-                  <div className="abcde-detail-grid">
-                    {ABCDE_CRITERIA.map((c) => (
-                      <div className="abcde-detail-card" key={c.letter}>
-                        <span className="abcde-detail-letter">{c.letter} - {c.title}</span>
-                        <span className="abcde-detail-desc">—</span>
-                      </div>
-                    ))}
-                  </div>
+                  <AbcdeGrid texts={result.abcdeTexts} used={result.criteriaUsed} />
                 </div>
 
                 <div className="result-section">
                   <div className="result-section-head">
                     <div className="scan-section-title"><IconCheckSquare /> Acciones Recomendadas</div>
                   </div>
-                  <ul className="actions-checklist">
-                    <li>—</li>
-                    <li>—</li>
-                    <li>—</li>
-                  </ul>
+                  <AccionesList actions={result.actions} />
                 </div>
 
                 <div className="result-section">
@@ -442,16 +426,15 @@ export default function Home() {
                     <input
                       value={description}
                       onChange={(e) => { setDescription(e.target.value); setDescriptionSaved(false); }}
-                      placeholder="Escriba sus anotaciones sobre el análisis"
+                      placeholder="Escriba sus anotaciones sobre el análisis realizado"
                     />
-                      <button className="btn-primary btn-sm" onClick={handleSaveDescription} disabled={descriptionSaved}>Guardar</button>
+                    <button className="btn-primary btn-sm" onClick={handleSaveDescription} disabled={descriptionSaved}>Guardar</button>
                   </div>
                 </div>
 
                 <div className="result-section">
                   <div className="result-section-head">
                     <div className="scan-section-title"><IconSend /> Enviar análisis a tu paciente</div>
-                    {/* Una vez enviado ya no se puede cambiar el paciente */}
                     {selectedPatient && !confirmingSend && (
                       choosing ? (
                         <button type="button" className="link-btn" onClick={() => setChoosing(false)}>
@@ -475,7 +458,7 @@ export default function Home() {
                         <button className="btn-primary" onClick={handleConfirmSend}>Confirmar envío</button>
                       </div>
                     </div>
-                    ) : !selectedPatient || choosing ? (
+                  ) : !selectedPatient || choosing ? (
                     <div className="searchable-select">
                       <input
                         value={patientQuery}
