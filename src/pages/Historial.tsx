@@ -18,6 +18,7 @@ interface AnalysisRecord {
   criteriaUsed: string[];
   abcdeTexts?: AbcdeTexts;
   actions?: string[];
+  contourImageDataUrl?: string;
   description: string;
   sentToPatient: boolean;
   doctorEmail?: string;
@@ -177,6 +178,7 @@ function AnalysisDetail({ recordId, onBack }: { recordId: string; onBack: () => 
   const [description, setDescription] = useState(record?.description ?? '');
   const [descriptionSaved, setDescriptionSaved] = useState(false);
   const [showTips, setShowTips] = useState(false);
+  const [showContour, setShowContour] = useState(true);
   const [chosenPatient, setChosenPatient] = useState<SentEntry | null>(null);
   // Lo que hiciste con el paciente recién elegido (arranca en cero, como uno nuevo)
   const [chosenSaved, setChosenSaved] = useState(false);
@@ -277,9 +279,17 @@ function AnalysisDetail({ recordId, onBack }: { recordId: string; onBack: () => 
 
           <div style={{ height: 200 }}>
             <div className="dropzone-v2" style={{ cursor: 'default' }}>
-              <img src={record.imageDataUrl} alt="Lesión analizada" />
+              <img
+                src={showContour && record.contourImageDataUrl ? record.contourImageDataUrl : record.imageDataUrl}
+                alt="Lesión analizada"
+              />
             </div>
           </div>
+          {record.contourImageDataUrl && (
+            <button type="button" className="link-btn contour-toggle" onClick={() => setShowContour((s) => !s)}>
+              {showContour ? 'Ver foto original' : 'Ver contorno de la IA'}
+            </button>
+          )}
 
           <button className="collapsible-toggle-v2" onClick={() => setShowTips((s) => !s)}>
             <IconInfo /> Recomendaciones para la fotografía

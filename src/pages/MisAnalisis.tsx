@@ -18,6 +18,7 @@ interface AnalysisRecord {
   criteriaUsed: string[];
   abcdeTexts?: AbcdeTexts;
   actions?: string[];
+  contourImageDataUrl?: string;
   sentToPatient: boolean;
   doctorName?: string;
   patientEmail?: string;
@@ -127,6 +128,7 @@ export default function MisAnalisis() {
 
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showContour, setShowContour] = useState(true);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -157,7 +159,16 @@ export default function MisAnalisis() {
 
           <div className="scanner-grid-v2">
             <div className="scan-card">
-              <img src={selected.imageDataUrl} alt="Lesión analizada" className="analysis-full-image" />
+            <img
+                src={showContour && selected.contourImageDataUrl ? selected.contourImageDataUrl : selected.imageDataUrl}
+                alt="Lesión analizada"
+                className="analysis-full-image"
+              />
+              {selected.contourImageDataUrl && (
+                <button type="button" className="link-btn contour-toggle" onClick={() => setShowContour((s) => !s)}>
+                  {showContour ? 'Ver foto original' : 'Ver contorno de la IA'}
+                </button>
+              )}
             </div>
 
             <div className="scan-card">

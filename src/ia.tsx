@@ -1,6 +1,3 @@
-
-
-
 export const IA_URL = 'https://proyectos-tic.ort.edu.ar/melascan/ia/analizar';
 export const IA_API_KEY = 'dIiL_nAvDl79W4rxLVLjTVu2-CrPJLkC2ovKUFgvG_I';
 
@@ -17,6 +14,7 @@ interface IaResultado {
   riesgo_pct: number;
   umbral_alerta_pct: number;
   supera_umbral: boolean;
+  imagen_con_contorno?: string;
   abcde: {
     evaluable: boolean;
     motivo?: string;
@@ -35,6 +33,7 @@ export interface ResultadoGuardado {
   criteriaUsed: string[];
   abcdeTexts: AbcdeTexts;
   actions: string[];
+  contornoDataUrl?: string;
 }
 
 const TRIAGE_INFO: Record<Exclude<Triage, 'pendiente'>, { pill: string; titulo: string; subtitulo: string }> = {
@@ -132,7 +131,11 @@ export function interpretar(r: IaResultado): ResultadoGuardado {
     if (propenso) criteriaUsed = [...criteriaUsed, 'E'];
   }
 
-  return { triage, riskPercentage: riesgo, criteriaUsed, abcdeTexts, actions: ACCIONES[triage] };
+    // Foto con el contorno verde que dibuja la IA (solo si pudo detectar el lunar)
+    const contornoDataUrl =
+    evaluable && r.imagen_con_contorno ? `data:image/png;base64,${r.imagen_con_contorno}` : undefined;
+
+  return { triage, riskPercentage: riesgo, criteriaUsed, abcdeTexts, actions: ACCIONES[triage], contornoDataUrl };
 }
 
 // Achica la foto antes de guardarla (para que no se llene localStorage)

@@ -13,6 +13,7 @@ interface AnalysisRecord {
   criteriaUsed: string[];
   abcdeTexts?: AbcdeTexts;
   actions?: string[];
+  contourImageDataUrl?: string;
   description: string;
   sentToPatient: boolean;
   doctorEmail: string;
@@ -146,6 +147,7 @@ export default function Home() {
   const [hasResult, setHasResult] = useState(false);
   const [result, setResult] = useState<ResultadoGuardado | null>(null);
   const [analysisError, setAnalysisError] = useState('');
+  const [showContour, setShowContour] = useState(true);
   const [showTips, setShowTips] = useState(false);
   const [description, setDescription] = useState('');
   const [descriptionSaved, setDescriptionSaved] = useState(false);
@@ -243,6 +245,9 @@ export default function Home() {
       const respuesta = await analizarImagen(file);
       const interpretado = interpretar(respuesta);
       const imagenChica = await comprimirImagen(preview);
+      const contornoChico = interpretado.contornoDataUrl
+      ? await comprimirImagen(interpretado.contornoDataUrl, 400)
+      : undefined;
 
       const raw = localStorage.getItem('melascan_historial');
       const historial: AnalysisRecord[] = raw ? JSON.parse(raw) : [];
@@ -256,6 +261,7 @@ export default function Home() {
         criteriaUsed: interpretado.criteriaUsed,
         abcdeTexts: interpretado.abcdeTexts,
         actions: interpretado.actions,
+        contourImageDataUrl: contornoChico,
         description: '',
         sentToPatient: false,
         doctorEmail: session.email,
@@ -352,7 +358,10 @@ export default function Home() {
                 onDrop={handleDrop}
               >
                 {preview ? (
-                  <img src={preview} alt="Vista previa del lunar" />
+                <img
+                src={hasResult && showContour && result?.contornoDataUrl ? result.contornoDataUrl : preview}
+                alt="Vista previa del lunar"
+                />
                 ) : (
                   <>
                     <div className="dz-text">Arrastre la fotografía o haga clic aquí</div>
@@ -370,6 +379,11 @@ export default function Home() {
               onChange={handleInputChange}
               style={{ display: 'none' }}
             />
+              {hasResult && result?.contornoDataUrl && (
+              <button type="button" className="link-btn contour-toggle" onClick={() => setShowContour((s) => !s)}>
+                {showContour ? 'Ver foto original' : 'Ver contorno de la IA'}
+              </button>
+            )}
 
             <button
               className="btn-primary scan-analyze-btn"
